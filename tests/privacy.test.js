@@ -170,7 +170,8 @@ test('MCP draft and schedule tools never infer or schedule and require human con
   await assert.rejects(tools.schedule_check_in({question:'Question?',proposed_date:'2026-02-31'}));assert.equal(saved.length,1);
 });
 test('Production HTML wiring has unique IDs and every direct DOM lookup exists',async()=>{
-  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');const ui=await readFile(new URL('../src/main.js',import.meta.url),'utf8');
+  const html=await readFile(new URL('../index.html',import.meta.url),'utf8') + await readFile(new URL('../src/admin.html',import.meta.url),'utf8');
+  const ui=await readFile(new URL('../src/main.js',import.meta.url),'utf8') + await readFile(new URL('../src/admin.js',import.meta.url),'utf8');
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(ids).size,ids.length);
   for(const [,id] of ui.matchAll(/(?<!\$)\$\('([^']+)'\)/g))if(id!=='panel-')assert.ok(ids.includes(id),id);
   for(const [,refs] of html.matchAll(/\b(?:for|aria-controls|aria-labelledby|aria-describedby)="([^"]+)"/g))for(const id of refs.split(' '))assert.ok(ids.includes(id),id);

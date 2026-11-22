@@ -39,13 +39,19 @@ export function publicThemes(themes) {
     try { return [{ title: text(t.title, 100), summary: text(t.summary, 400), band: t.band }]; } catch { return []; }
   });
 }
-export function riskSpans(raw, candidate, { strict = false } = {}) {
+export function riskSpans(raw, candidate, { strict = false, originalRisks } = {}) {
   if (!Array.isArray(candidate)) throw new Error('Invalid risk output');
+  if (originalRisks) {
+    // An unlinked claim is not evidence of a residual source detail.
+    candidate = candidate.filter(r => Number.isInteger(r?.sourceRiskIndex) && r.sourceRiskIndex >= 0 && r.sourceRiskIndex < originalRisks.length);
+    candidate = candidate.filter(r => typeof r.text !== 'string' || !/^(?:(?:the|our|a|some|all)\s+)?(?:team|people|updates)$/i.test(r.text.trim()) || r.text.toLowerCase() === originalRisks[r.sourceRiskIndex].text.toLowerCase());
+  }
   if (strict && (candidate.length > 30 || candidate.some(r => typeof r?.text !== 'string' || !r.text || !raw.includes(r.text)))) throw new Error('Unanchored draft risk output');
   const allowed = new Set(['name', 'date', 'weekday', 'uncommon role', 'other identifying detail']);
   return candidate.slice(0, 30).flatMap(r => {
     if (typeof r?.text !== 'string' || !r.text || !raw.includes(r.text)) return [];
-    return [{ text: r.text, category: allowed.has(r.category) ? r.category : 'other identifying detail' }];
+    const category = originalRisks ? originalRisks[r.sourceRiskIndex].category : r.category;
+    return [{ text: r.text, category: allowed.has(category) ? category : 'other identifying detail', ...(originalRisks ? { sourceRiskIndex: r.sourceRiskIndex } : {}) }];
   });
 }
 // Finite, conservative local aliases supplement (never replace) the semantic AI review.
@@ -57,11 +63,9 @@ const ROLE_ALIASES = [
 ];
 export function residualRisks(draft, risks) {
   const found = [];
-  for (const risk of risks) {
+  for (const [sourceRiskIndex, risk] of risks.entries()) {
     const terms = new Set([risk.text]);
     if (risk.category === 'uncommon role') {
-      const role = risk.text.replace(/\b(?:as|the|a|an|only|sole|single|person|people|in|our|team)\b/gi, ' ').replace(/\s+/g, ' ').trim();
-      if (role) terms.add(role);
       for (const aliases of ROLE_ALIASES) {
         if (aliases.some(term => new RegExp(`\\b${term}\\b`, 'i').test(risk.text))) aliases.forEach(term => terms.add(term));
       }
@@ -74,7 +78,7 @@ export function residualRisks(draft, risks) {
     for (const term of terms) {
       const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
-      for (const match of draft.matchAll(pattern)) found.push({ text: match[0], category: risk.category });
+      for (const match of draft.matchAll(pattern)) found.push({ text: match[0], category: risk.category, sourceRiskIndex });
     }
   }
   return mergeRisks(found);

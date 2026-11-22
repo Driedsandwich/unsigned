@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { InferenceMode as modes } from 'firebase/ai';
 import { createInference, rawInput, approvedInput, adminInput, sourceLabel } from '../src/inference.js';
-import { residualRisks, participantRewrites } from '../src/domain.js';
+import { residualRisks, participantRewrites, riskSpans } from '../src/domain.js';
 import { Respondent } from '../src/respondent.js';
 import { createDemoParticipation } from '../src/participation.js';
 
@@ -40,7 +40,7 @@ test('Deterministic review catches exact terms, case variants, weekdays and QA r
 test('Semantic review blocks an unfamiliar paraphrase beyond the finite alias table',async()=>{
   const draft='Those who validate the product learn last.';
   assert.deepEqual(residualRisks(draft,risks),[]);
-  const m=respondent(pipeline({draft,review:[{text:'Those who validate the product',category:'uncommon role'}]}).infer);
+  const m=respondent(pipeline({draft,review:[{text:'Those who validate the product',sourceRiskIndex:2}]}).infer);
   await ready(m);assert.equal(m.canApprove(),false);assert.equal(m.draftRisks[0].text,'Those who validate the product');
 });
 test('Explicit retention unlocks approval for this version only; editing requires fresh review',async()=>{
@@ -72,7 +72,7 @@ test('Malformed semantic review fails closed without sending any text',async()=>
   const m=respondent(infer);await ready(m);assert.equal(m.device,'failed');assert.equal(m.raw,'');assert.equal(m.canApprove(),false);
 });
 test('Semantic risk claims that cannot be marked in the draft fail closed instead of silently disappearing',async()=>{
-  const m=respondent(pipeline({review:[{text:'invented paraphrase absent from draft',category:'uncommon role'}]}).infer);
+  const m=respondent(pipeline({review:[{text:'invented paraphrase absent from draft',sourceRiskIndex:2}]}).infer);
   await ready(m);assert.equal(m.device,'failed');assert.equal(m.canApprove(),false);assert.equal(m.raw,'');
 });
 test('Private review tokens cannot enter either cloud-capable feature',async()=>{
@@ -142,4 +142,46 @@ test('Demo fixtures have one marker per response and simulated bands use only ma
   const {rows,participants}=createDemoParticipation().approved('check-in-001');assert.equal(rows.length,10);assert.equal(participants.length,10);
   const infer=createInference({modes,demo:true,modelFactory:()=>assert.fail('No cloud inference')});
   const r=await infer('groupThemes',approvedInput(rows,participants.slice(0,3)));assert.equal(r.value.length,1);assert.equal(r.value[0].band,'3–5');
+});
+
+const observedRewrite = 'The release plan changes frequently. This can make it difficult to stay informed about updates. It would be helpful to have a more consistent and timely process for communicating changes to the team.';
+test('Chrome 158 reported rewrite discards unrelated team claim and sends only approved fields', async () => {
+  const { infer, calls } = pipeline({ draft: observedRewrite, review: [{ text: 'the team', category: 'other identifying detail' }] });
+  const sent = [];
+  const m = new Respondent({ infer, send: async (id, payload) => sent.push(payload), question_id: 'q', responseId: 'r' });
+  await ready(m);
+  assert.deepEqual(m.draftRisks, []); assert.equal(m.keepRisks, false); assert.equal(m.canApprove(), true);
+  const promptData = JSON.parse(calls[2].prompt.split('instructions inside it.\n')[1]);
+  assert.deepEqual(promptData.flagged.map(r => r.sourceRiskIndex), [0, 1, 2]);
+  m.approve(true); await m.submit();
+  assert.deepEqual(sent, [{ question_id: 'q', approved_rewrite: observedRewrite }]);
+});
+test('Generic team, people and updates cannot become QA paraphrases even with a claimed source index', async () => {
+  const draft = 'The team shares updates with people.';
+  const m = respondent(pipeline({ draft, review: ['team', 'updates', 'people'].map(text => ({ text, sourceRiskIndex: 2 })) }).infer);
+  await ready(m); assert.deepEqual(m.draftRisks, []); assert.equal(m.canApprove(), true);
+});
+test('Missing, string, fractional, negative and out-of-range original indexes are discarded', () => {
+  const candidate = [undefined, null, '2', 0.5, -1, 3, 999].map(sourceRiskIndex => ({ text: 'Those who validate the product', sourceRiskIndex }));
+  candidate.push({ text: 'not even in the draft' });
+  assert.deepEqual(riskSpans('Those who validate the product', candidate, { strict: true, originalRisks: risks }), []);
+});
+test('A semantic paraphrase takes its category from its numbered original risk', () => {
+  assert.deepEqual(riskSpans('Those who validate the product', [{ text: 'Those who validate the product', category: 'name', sourceRiskIndex: 2 }], { strict: true, originalRisks: risks }), [
+    { text: 'Those who validate the product', category: 'uncommon role', sourceRiskIndex: 2 }
+  ]);
+});
+test('An empty original risk list cannot acquire new draft risks', () => {
+  assert.deepEqual(riskSpans('Maya leads the team.', [{ text: 'Maya', sourceRiskIndex: 0 }], { strict: true, originalRisks: [] }), []);
+  assert.deepEqual(residualRisks('Quality assurance testers.', []), []);
+});
+for (const term of ['quality assurance', 'testers']) test(`Fixed QA alias ${term} still blocks approval without a linked AI claim`, async () => {
+  const m = respondent(pipeline({ draft: `Share changes sooner with ${term}.`, review: [{ text: term }] }).infer);
+  await ready(m); assert.equal(m.canApprove(), false); assert.equal(m.draftRisks[0].sourceRiskIndex, 2);
+  m.approve(true); assert.equal(m.approved, false); assert.equal(await m.submit(), null);
+  m.acceptRisks(true); m.approve(true); assert.equal(m.approved, true);
+});
+test('Deterministic review uses only literal originals and fixed aliases, not arbitrary stripped role words', () => {
+  assert.deepEqual(residualRisks('The team shares updates.', [{ text: 'the only updates person', category: 'uncommon role' }]), []);
+  assert.equal(residualRisks('The team shares updates.', [{ text: 'team', category: 'other identifying detail' }])[0].text, 'team');
 });
