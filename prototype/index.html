@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="light">
+  <title>Unsigned — a private check-in · Prototype</title>
+  <style>
+    :root {
+      --bg:#F4F6F4; --surface:#FFFFFF; --ink:#172C2A; --muted:#526560;
+      --green:#236C60; --pale:#E4F1EB; --line:#CBD8D2; --soft:#EDF2EE;
+      font-family:Inter,ui-sans-serif,system-ui,sans-serif; color:var(--ink);
+      background:#E8EDE9; font-synthesis:none; font-variant-numeric:tabular-nums;
+    }
+    * { box-sizing:border-box }
+    body { margin:0 }
+    button,input,select,textarea { font:inherit; color:inherit }
+    button,input,select,textarea,a { -webkit-tap-highlight-color:transparent }
+    button { cursor:pointer }
+    button:disabled { cursor:not-allowed; opacity:.48 }
+    button { min-height:44px }
+    button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible {
+      outline:3px solid var(--green); outline-offset:3px;
+    }
+    [hidden] { display:none !important }
+    h1,h2,h3,p { margin:0 }
+    h1,h2,h3 { letter-spacing:-.035em; font-weight:700 }
+    svg { flex-shrink:0; vertical-align:middle }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
+    .skip { position:absolute; left:16px; top:-100px; z-index:10; padding:12px; background:white }
+    .skip:focus { top:16px }
+    .prototype-intro { background:#FCFDFB; border-bottom:1px solid var(--line); padding:18px 32px }
+    .intro-inner { max-width:1376px; margin:auto; display:flex; align-items:flex-start; gap:20px }
+    .prototype-label { padding:6px 10px; border:1px solid var(--line); border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.12em; white-space:nowrap; margin-top:3px }
+    .japanese { font-family:"Hiragino Sans","Yu Gothic",Meiryo,ui-sans-serif,sans-serif; font-size:13px; line-height:1.9; max-width:1110px }
+    .japanese strong { font-weight:700 }
+    .prototype-toolbar { padding:16px 32px; border-bottom:1px solid var(--line); background:#F9FBF8 }
+    .toolbar-inner { max-width:1376px; margin:auto; display:flex; flex-wrap:wrap; gap:16px 28px; align-items:center }
+    .control-group { border:0; margin:0; padding:0; display:flex; align-items:center; gap:10px }
+    .control-label { font-size:12px; color:var(--muted); font-weight:600 }
+    .segmented { display:inline-flex; padding:3px; border:1px solid var(--line); border-radius:9px; background:var(--surface) }
+    .segmented button { border:0; background:transparent; font-size:13px; font-weight:600; padding:0 14px; border-radius:6px; min-height:44px }
+    .segmented button[aria-pressed="true"] { background:var(--green); color:white }
+    .local-label { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); margin-left:auto }
+    .local-label::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--green) }
+    .toolbar-footnote { max-width:1376px; margin:8px auto 0; color:var(--muted); font-size:11px }
+    .preview-stage { padding:28px 24px 40px }
+    .app-shell { width:100%; max-width:1440px; margin:0 auto; background:var(--bg); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:0 12px 40px #172C2A08; container:workspace / inline-size }
+    .app-shell[data-size="mobile"] { max-width:390px }
+    .app { --body-size:18px; --body-line:26px; --label-size:14px; --label-line:20px; --pad:32px; font-size:var(--body-size); line-height:var(--body-line) }
+    .app h1 { font-size:32px; line-height:40px }
+    .app h2 { font-size:24px; line-height:32px }
+    .app h3 { font-size:20px; line-height:28px }
+    .app-header { padding:20px var(--pad); display:flex; align-items:center; gap:24px; border-bottom:1px solid var(--line); min-height:86px; background:#FAFCFA }
+    .wordmark { font-size:28px; font-weight:700; line-height:36px; letter-spacing:-1.2px }
+    .header-divider { height:25px; width:1px; background:var(--line) }
+    .pill { display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:99px; color:var(--green); background:var(--pale); font-size:var(--label-size); line-height:var(--label-line); font-weight:600; white-space:nowrap }
+    .pill .dot { width:6px; height:6px; background:var(--green); border-radius:50% }
+    .header-context { margin-left:auto }
+    .admin-tabs { display:flex; align-items:center; gap:8px }
+    .admin-tabs button { background:transparent; border:0; padding:8px 16px; font-size:16px; font-weight:600; border-radius:8px }
+    .admin-tabs button[aria-selected="true"] { background:var(--pale); color:var(--green) }
+    .respondent-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:24px; padding:32px var(--pad) 24px }
+    .response-editor { grid-column:span 8; min-width:0 }
+    .eyebrow { display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:.11em; font-size:11px; font-weight:600; line-height:18px; color:var(--muted) }
+    .eyebrow .tiny-line { height:1px; width:24px; background:var(--green) }
+    .response-editor h1 { margin:8px 0 20px }
+    .question-count { color:var(--muted); font-size:var(--label-size); line-height:var(--label-line); margin-bottom:6px }
+    .question { font-size:20px; line-height:28px; font-weight:700; letter-spacing:-.02em; margin-bottom:24px }
+    .card { border:1px solid var(--line); border-radius:12px; background:var(--surface) }
+    .private-card { padding:16px; display:grid; grid-template-columns:1fr auto; gap:12px }
+    .field-title { font-size:18px; line-height:26px; font-weight:600; letter-spacing:-.02em }
+    .private-card .privacy-caption { font-size:var(--label-size); line-height:var(--label-line); align-self:center; color:var(--muted) }
+    textarea { display:block; width:100%; min-height:126px; resize:vertical; padding:12px 14px; border:1px solid var(--line); border-radius:8px; background:white; font-size:var(--body-size); line-height:var(--body-line) }
+    textarea::placeholder { color:#75847F; opacity:1 }
+    .private-card textarea { grid-column:1/-1 }
+    .input-footer { display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-size:12px; line-height:18px; grid-column:1/-1 }
+    .example-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0 0; font-size:var(--label-size); line-height:var(--label-line); color:var(--muted) }
+    select { min-height:44px; min-width:0; border:1px solid var(--line); background:white; border-radius:8px; padding:8px 32px 8px 10px; max-width:100% }
+    .example-row select { font-size:13px; padding-left:8px }
+    .text-button { color:var(--green); text-decoration:underline; text-underline-offset:4px; font-weight:600; border:0; background:none; padding:8px 4px; font-size:var(--label-size) }
+    .ai-bridge { height:84px; display:flex; align-items:center; justify-content:center; position:relative }
+    .ai-bridge::before { content:""; position:absolute; height:100%; width:1px; background:#91ADA3; top:0; left:50% }
+    .ai-bridge::after { content:""; position:absolute; bottom:5px; width:8px; height:8px; border-bottom:2px solid var(--green); border-right:2px solid var(--green); transform:rotate(45deg) }
+    .bridge-pill { z-index:1; padding:5px 18px; border:1px solid #D1E5DA }
+    .ai-bridge.processing .bridge-pill { animation:breathe 1s ease-in-out infinite }
+    .ai-bridge.processing .dot { animation:blink .7s ease-in-out infinite }
+    @keyframes breathe { 50% { box-shadow:0 0 0 6px #236C6010 } }
+    @keyframes blink { 50% { opacity:.25 } }
+    .draft-card { padding:16px; background:var(--pale); border-color:#D1E3DA }
+    .draft-heading { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px }
+    .draft-heading h2 { font-size:24px; line-height:32px }
+    .status { display:inline-flex; align-items:center; gap:6px; color:var(--green); font-size:12px; line-height:18px; margin-left:auto }
+    .status svg { width:15px; height:15px }
+    .draft-card textarea { min-height:104px; background:#FFFFFFE8 }
+    .draft-card textarea[readonly] { cursor:default }
+    .draft-card textarea:not([readonly]) { border-color:var(--green); background:white }
+    .draft-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; margin-top:4px }
+    .draft-actions { display:flex; gap:12px; flex-wrap:wrap }
+    .version { font-size:11px; color:var(--muted) }
+    .draft-note { font-size:var(--label-size); line-height:var(--label-line); color:var(--muted); min-height:20px }
+    .timeline { grid-column:span 4; border-left:1px solid var(--line); padding:8px 0 8px 24px; margin-top:8px }
+    .timeline h2 { font-size:24px; line-height:32px; margin-bottom:32px }
+    .flow-list { list-style:none; padding:0; margin:0 0 24px 8px }
+    .flow-list li { display:flex; position:relative; gap:20px; padding-bottom:34px }
+    .flow-list li:not(:last-child)::after { content:""; width:1px; background:#91ADA3; position:absolute; left:17px; top:36px; bottom:0 }
+    .flow-list li:last-child { padding-bottom:0 }
+    .step-number { display:grid; place-items:center; width:36px; height:36px; border:1px solid #1A594F; background:var(--green); color:white; border-radius:50%; font-size:18px; font-weight:600; flex-shrink:0 }
+    .step-text { padding-top:1px }
+    .step-text strong { display:block; font-size:18px; line-height:26px; font-weight:600; letter-spacing:-.02em }
+    .step-text span { display:block; color:var(--muted); font-size:16px; line-height:24px }
+    .device-boundary { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); margin:28px 0 24px; white-space:nowrap }
+    .device-boundary::before,.device-boundary::after { content:""; flex:1; border-top:1px dashed var(--muted) }
+    .cloud-receives { display:flex; align-items:center; justify-content:center; gap:16px; padding:0 8px }
+    .cloud-receives svg { width:52px; height:52px }
+    .cloud-receives strong { font-size:18px; line-height:26px; max-width:180px }
+    .timeline-footnote { color:var(--muted); font-size:12px; line-height:18px; margin-top:24px; text-align:center }
+    .approval-bar { background:white; border-top:1px solid var(--line); padding:20px var(--pad); display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px 24px }
+    .approve-label { display:flex; align-items:center; gap:12px; min-height:44px; font-weight:600; font-size:20px; line-height:28px; cursor:pointer }
+    .approve-label input { appearance:none; width:25px; height:25px; margin:0; border:1.5px solid #819B91; border-radius:5px; background:white; display:grid; place-content:center; flex-shrink:0 }
+    .approve-label input:checked { background:var(--green); border-color:var(--green) }
+    .approve-label input:checked::before { content:""; width:12px; height:7px; border-left:2px solid white; border-bottom:2px solid white; transform:rotate(-45deg) translateY(-1px) }
+    .approve-label input:disabled { opacity:.45; cursor:not-allowed }
+    .primary-button,.secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--green); border-radius:8px; padding:12px 22px; font-size:18px; line-height:24px; font-weight:600; min-height:48px; text-decoration:none }
+    .primary-button { background:var(--green); color:white; box-shadow:inset 0 1px 0 #FFFFFF15 }
+    .primary-button:not(:disabled):hover { background:#1B574D }
+    .secondary-button { background:transparent; color:var(--green) }
+    .secondary-button:not(:disabled):hover { background:var(--pale) }
+    .approval-help { color:var(--muted); font-size:12px; line-height:18px; grid-column:1/-1 }
+    .app-footnote { padding:12px var(--pad); border-top:1px solid var(--line); font-size:11px; line-height:18px; color:var(--muted); display:flex; justify-content:space-between; gap:12px; background:#FAFCFA }
+    .fallback-card { padding:20px; margin-top:4px }
+    .fallback-card h2 { margin:12px 0 8px }
+    .fallback-card p { color:var(--muted); font-size:var(--label-size); line-height:var(--label-line) }
+    .fallback-card fieldset { border:0; margin:20px 0 16px; padding:0 }
+    .fallback-card legend,.template-label { display:block; font-size:var(--label-size); line-height:var(--label-line); font-weight:600; margin-bottom:8px }
+    .choice-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px }
+    .choice { border:1px solid var(--line); border-radius:8px; background:white; padding:10px 8px; display:flex; align-items:center; gap:6px; min-height:48px; cursor:pointer; font-size:13px; font-weight:600 }
+    .choice:has(input:checked) { background:var(--pale); border-color:var(--green) }
+    .choice input { accent-color:var(--green); width:16px; height:16px; margin:0; flex-shrink:0 }
+    .fallback-card select { width:100%; font-size:16px }
+    .structured-preview { padding:16px; background:var(--pale); border-radius:8px; margin-top:20px }
+    .structured-preview .eyebrow { margin-bottom:8px }
+    .structured-preview p { font-size:var(--body-size); line-height:var(--body-line); color:var(--ink) }
+    .receipt { padding:40px var(--pad); max-width:860px; margin:auto }
+    .receipt-symbol { display:grid; place-items:center; width:52px; height:52px; border:1px solid #C7DFD2; border-radius:50%; background:var(--pale); color:var(--green); margin-bottom:20px }
+    .receipt h1 { margin:8px 0 12px }
+    .receipt > p { color:var(--muted); margin-bottom:24px }
+    .payload-card { padding:20px; margin:24px 0 }
+    .payload-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px }
+    .payload-heading h2 { font-size:20px; line-height:28px }
+    .payload-heading span { font-size:11px; color:var(--green); text-transform:uppercase; letter-spacing:.08em }
+    pre { margin:0; padding:18px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-size:14px; line-height:24px; white-space:pre-wrap; overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Consolas,monospace }
+    .receipt-facts { display:flex; flex-wrap:wrap; gap:8px 20px; margin:14px 0 0; font-size:12px; color:var(--muted) }
+    .receipt-facts span::before { content:"✓"; margin-right:6px; color:var(--green) }
+    .receipt-actions { display:flex; flex-wrap:wrap; gap:12px }
+    .receipt-note { font-size:12px; line-height:18px; margin-top:20px }
+    .admin-main { padding:28px var(--pad) 24px }
+    .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px }
+    .page-heading p { color:var(--muted); margin-top:4px }
+    .demo-tag { font-size:11px; line-height:18px; color:var(--muted); border:1px solid var(--line); border-radius:99px; padding:4px 10px; margin-top:8px; white-space:nowrap }
+    .privacy-banner { display:flex; gap:18px; align-items:center; padding:16px 20px; background:var(--pale); border:1px solid #D1E3DA; border-radius:12px; margin-bottom:16px }
+    .privacy-banner svg { width:30px; height:34px; color:var(--green) }
+    .privacy-banner-text { padding-left:18px; border-left:1px solid #9ABCB0 }
+    .privacy-banner strong { display:block; font-size:18px; line-height:26px; font-weight:700 }
+    .privacy-banner p { font-size:var(--label-size); line-height:var(--label-line); color:var(--muted) }
+    .landscape { position:relative; border:1px solid var(--line); border-radius:12px; padding:28px 28px 16px; background:radial-gradient(ellipse at 46% 45%,#FFFFFF 0%,#F4F7F4 68%); margin-bottom:16px }
+    .map-topline { display:flex; justify-content:space-between; gap:12px; font-size:11px; line-height:18px; color:var(--muted); margin-bottom:16px }
+    .map-canvas { position:relative; min-height:310px; display:grid; grid-template-columns:1.1fr 1fr; grid-template-rows:1fr 1fr; gap:28px 80px; align-items:center; padding:8px 20px 20px }
+    .connections { position:absolute; inset:0; width:100%; height:100%; color:#81A79B; pointer-events:none }
+    .connections path { vector-effect:non-scaling-stroke; stroke-width:2; stroke-dasharray:1 7 }
+    .theme-island { position:relative; z-index:1; background:white; border:1px solid #BFCFC7; border-radius:12px; padding:20px; box-shadow:0 3px 4px #172C2A08,0 8px 20px #172C2A06; min-width:0 }
+    .theme-island[data-theme="handoffs"] { grid-column:1; grid-row:1/3 }
+    .theme-island[data-theme="focus"] { grid-column:2; grid-row:1 }
+    .theme-island[data-theme="decisions"] { grid-column:2; grid-row:2 }
+    .map-canvas[data-count="2"] { grid-template-rows:1fr; gap:80px }
+    .map-canvas[data-count="2"] .theme-island { grid-column:auto; grid-row:auto }
+    .theme-island h2 { font-size:26px; line-height:32px; margin-bottom:4px }
+    .theme-island p { font-size:16px; line-height:23px; color:var(--muted) }
+    .island-meta { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin-top:16px; font-size:12px; line-height:20px; color:var(--muted) }
+    .island-meta b { color:var(--ink); font-weight:600 }
+    .strength-badge { background:var(--pale); border-radius:5px; padding:3px 7px; margin-left:4px; color:var(--green) }
+    .band-track { display:flex; height:10px; gap:3px; margin-top:12px }
+    .band-track span { flex:1; background:#E6EEEA; border-radius:3px }
+    .band-track span[data-level="1"].active { background:#94C9B5 }
+    .band-track span[data-level="2"].active { background:var(--green) }
+    .band-track span[data-level="3"].active { background:#609384 }
+    .map-caption { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-top:12px }
+    .threshold-note { display:flex; gap:10px; align-items:flex-start; background:var(--pale); border:1px solid #C6DBD1; border-radius:8px; padding:10px 12px; font-size:12px; line-height:18px }
+    .threshold-note svg { width:18px; height:18px; margin-top:1px; color:var(--green) }
+    .threshold-note strong { display:block; font-weight:600 }
+    .threshold-note span { color:var(--muted) }
+    .connection-note { font-size:12px; line-height:18px; color:var(--muted); font-style:italic; text-align:right; max-width:300px }
+    .question-workbench { display:grid; grid-template-columns:1fr 1.8fr auto; gap:24px; align-items:center; padding:20px; margin-bottom:16px }
+    .workbench-heading { border-right:1px solid var(--line); padding-right:20px }
+    .workbench-heading .pill { margin-bottom:8px; font-size:11px; padding:4px 10px }
+    .workbench-heading h2 { font-size:22px; line-height:28px }
+    .question-output label { display:block; color:var(--muted); font-size:var(--label-size); line-height:var(--label-line); margin-bottom:6px }
+    .question-output textarea { min-height:76px; font-size:16px; line-height:22px }
+    .execution-row { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:11px; line-height:18px; margin-top:8px; color:var(--muted) }
+    .execution-location { color:var(--green); font-weight:600 }
+    .workbench-actions { display:flex; flex-direction:column; gap:6px; min-width:154px }
+    .workbench-actions .primary-button { font-size:16px; line-height:22px }
+    .use-note { text-align:center; color:var(--muted); font-size:11px; line-height:18px }
+    .adoption-message { font-size:13px; line-height:20px; padding:12px 16px; border:1px solid #BED6CA; border-radius:8px; background:var(--pale); margin-bottom:16px }
+    .legend { display:flex; align-items:center; gap:12px 20px; flex-wrap:wrap; padding:12px 16px; font-size:12px; line-height:18px; background:#FFFFFF80 }
+    .legend-label { font-weight:600 }
+    .legend-bands { display:flex; gap:16px }
+    .legend-item { display:flex; align-items:center; gap:6px; white-space:nowrap }
+    .swatch { width:22px; height:10px; border-radius:3px; background:#94C9B5 }
+    .swatch.medium { background:var(--green) }
+    .swatch.high { background:#609384 }
+    .legend-explanation { color:var(--muted); border-left:1px solid var(--line); padding-left:16px }
+    .settings-card,.questions-card { padding:24px; margin-top:20px }
+    .settings-card > p,.questions-card > p { color:var(--muted); margin:8px 0 20px; max-width:800px }
+    .tool-list { margin:24px 0; display:grid; gap:0 }
+    .tool-item { border-top:1px solid var(--line); padding:18px 0; display:grid; grid-template-columns:minmax(240px,1fr) 2fr; gap:24px }
+    .tool-item dt code { font-size:14px; font-weight:600; overflow-wrap:anywhere }
+    .tool-item dd { margin:0; font-size:16px; line-height:24px; color:var(--muted) }
+    .excluded { padding:18px; border:1px solid var(--line); border-radius:8px; background:var(--bg) }
+    .excluded h3 { margin-bottom:10px }
+    .excluded ul { margin:0; padding-left:22px; font-size:16px; line-height:28px }
+    .settings-note { font-size:12px; line-height:18px; color:var(--muted); margin-top:16px }
+    .saved-question { padding:20px; background:var(--pale); border:1px solid #C6DBD1; border-radius:8px }
+    .saved-question blockquote { margin:12px 0; font-size:24px; line-height:32px; letter-spacing:-.025em; font-weight:600 }
+    .saved-question p { font-size:var(--label-size); line-height:var(--label-line); color:var(--muted) }
+    .questions-card .secondary-button { margin-top:20px }
+    @container workspace (max-width: 1000px) {
+      .question-workbench { grid-template-columns:1fr 2fr }
+      .workbench-actions { grid-column:2; flex-direction:row; align-items:center; flex-wrap:wrap }
+      .map-canvas { gap:24px; padding:8px 0 20px }
+      .island-meta { gap:8px }
+      .theme-island { padding:16px }
+      .timeline { padding-left:20px }
+      .flow-list li { gap:12px }
+    }
+    @container workspace (max-width: 760px) {
+      .app { --body-size:16px; --body-line:22px; --label-size:13px; --label-line:18px; --pad:16px }
+      .app h1 { font-size:26px; line-height:32px }
+      .app h2 { font-size:20px; line-height:26px }
+      .app h3 { font-size:18px; line-height:25px }
+      .app-header { padding:14px 16px; min-height:66px; gap:12px; flex-wrap:wrap }
+      .wordmark { font-size:26px; line-height:32px; letter-spacing:-1px }
+      .header-divider { display:none }
+      .header-context { font-size:12px; padding:5px 10px }
+      .admin-tabs { order:3; flex-basis:100%; gap:4px; border-top:1px solid var(--line); padding-top:10px; margin-top:4px }
+      .admin-tabs button { flex:1; font-size:14px; padding:8px }
+      .respondent-grid { display:flex; flex-direction:column; gap:16px; padding:20px var(--pad) }
+      .response-editor > .eyebrow,.response-editor > h1 { display:none }
+      .question { font-size:18px; line-height:25px; margin-bottom:16px }
+      .question-count { margin-bottom:6px }
+      .private-card { padding:12px; gap:8px; grid-template-columns:1fr }
+      .field-title { font-size:16px; line-height:22px }
+      .private-card .privacy-caption { grid-row:3 }
+      .private-card textarea { min-height:126px }
+      textarea { padding:10px 12px }
+      .input-footer { font-size:11px; line-height:16px }
+      .example-row { gap:4px 8px; margin-top:8px }
+      .example-row > span { flex-basis:100%; font-size:11px }
+      .example-row select { flex:1 }
+      .ai-bridge { height:64px }
+      .draft-card { padding:12px }
+      .draft-heading { gap:8px; margin-bottom:10px }
+      .draft-heading h2 { font-size:20px; line-height:26px }
+      .status { font-size:10px; line-height:16px; gap:4px }
+      .status svg { width:13px; height:13px }
+      .draft-card textarea { min-height:104px }
+      .draft-note { font-size:12px; line-height:18px }
+      .timeline { padding:16px 12px; margin:0; border:1px solid var(--line); border-radius:12px; background:white }
+      .timeline h2 { font-size:20px; line-height:26px; margin-bottom:14px }
+      .flow-list { margin:0 4px }
+      .flow-list li { gap:12px; padding-bottom:12px; align-items:center }
+      .flow-list li:not(:last-child)::after { left:12px; top:26px }
+      .step-number { width:26px; height:26px; font-size:13px; border:none; background:#D9EDE3; color:var(--ink) }
+      .step-text { display:flex; flex-wrap:wrap; gap:4px; padding:0 }
+      .step-text strong,.step-text span { display:inline; font-size:13px; line-height:20px; font-weight:400 }
+      .step-text span::before { content:"· "; color:var(--muted) }
+      .device-boundary,.cloud-receives,.timeline-footnote { display:none }
+      .approval-bar { margin:0 16px 20px; border:1px solid var(--line); border-radius:12px; padding:12px; grid-template-columns:1fr; gap:8px }
+      .approve-label { font-size:16px; line-height:22px; gap:10px }
+      .approve-label input { width:24px; height:24px }
+      .primary-button,.secondary-button { font-size:16px; line-height:22px; padding:10px 16px; min-height:44px }
+      .approval-help { text-align:center; font-size:11px; line-height:16px }
+      .app-footnote { flex-direction:column; gap:2px; padding:10px 16px; font-size:10px; line-height:16px }
+      .fallback-card { padding:16px 12px }
+      .choice-grid { grid-template-columns:1fr }
+      .choice { padding:12px }
+      .fallback-card select { font-size:14px }
+      .receipt { padding:28px 16px }
+      .receipt > p { margin-bottom:20px }
+      .payload-card { padding:12px }
+      .payload-heading { align-items:flex-start; flex-direction:column; gap:4px }
+      pre { font-size:12px; line-height:20px; padding:12px }
+      .receipt-actions { flex-direction:column }
+      .admin-main { padding:20px 16px }
+      .page-heading { flex-direction:column; gap:8px; margin-bottom:16px }
+      .page-heading p { font-size:14px; line-height:20px }
+      .demo-tag { margin:0 }
+      .privacy-banner { gap:12px; padding:12px }
+      .privacy-banner svg { width:24px; height:28px }
+      .privacy-banner-text { padding-left:12px }
+      .privacy-banner strong { font-size:14px; line-height:20px }
+      .privacy-banner p { font-size:12px; line-height:18px; margin-top:4px }
+      .landscape { padding:16px 12px; background:#EFF4F0 }
+      .map-topline { flex-direction:column; gap:4px; margin-bottom:12px }
+      .map-canvas,.map-canvas[data-count="2"] { display:flex; flex-direction:column; gap:12px; min-height:0; padding:0 }
+      .connections { display:none }
+      .theme-island { width:100%; padding:16px; box-shadow:0 2px 4px #172C2A06 }
+      .theme-island h2 { font-size:20px; line-height:26px }
+      .theme-island p { font-size:14px; line-height:20px }
+      .island-meta { margin-top:12px; gap:8px; font-size:11px; line-height:18px }
+      .map-caption { flex-direction:column; align-items:stretch; gap:12px; margin-top:16px }
+      .connection-note { text-align:left; max-width:none; font-size:11px; line-height:17px }
+      .threshold-note { padding:10px; font-size:11px; line-height:17px }
+      .question-workbench { display:flex; flex-direction:column; align-items:stretch; gap:16px; padding:16px }
+      .workbench-heading { padding:0 0 12px; border-right:0; border-bottom:1px solid var(--line) }
+      .workbench-heading h2 { font-size:20px; line-height:26px }
+      .question-output textarea { min-height:80px }
+      .workbench-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px }
+      .workbench-actions .text-button { grid-column:1; grid-row:1 }
+      .workbench-actions .primary-button { grid-column:2; grid-row:1 }
+      .use-note { grid-column:1/-1 }
+      .legend { padding:12px; gap:8px 16px; font-size:11px; line-height:17px }
+      .legend-label { flex-basis:100% }
+      .legend-explanation { border:0; padding:4px 0 0 }
+      .settings-card,.questions-card { padding:16px; margin-top:16px }
+      .settings-card > p,.questions-card > p { font-size:14px; line-height:20px }
+      .tool-item { grid-template-columns:1fr; gap:6px; padding:16px 0 }
+      .tool-item dt code { font-size:12px }
+      .tool-item dd { font-size:14px; line-height:20px }
+      .excluded { padding:12px }
+      .excluded ul { font-size:14px; line-height:24px }
+      .saved-question { padding:16px }
+      .saved-question blockquote { font-size:20px; line-height:28px }
+    }
+    @media (max-width: 760px) {
+      .prototype-intro { padding:14px 16px }
+      .intro-inner { flex-direction:column; gap:8px }
+      .prototype-label { font-size:10px; margin:0; padding:3px 7px }
+      .japanese { font-size:12px; line-height:1.85 }
+      .prototype-toolbar { padding:12px 16px }
+      .toolbar-inner { gap:12px; justify-content:space-between }
+      .control-group { gap:6px; flex-wrap:wrap }
+      .control-group.device-control { flex-basis:100%; justify-content:space-between }
+      .control-label { font-size:11px }
+      .segmented button { min-height:44px; padding:0 11px; font-size:12px }
+      .local-label { margin-left:0; font-size:11px }
+      .toolbar-footnote { font-size:10px; line-height:16px }
+      .preview-stage { padding:16px 0 24px }
+      .app-shell { border-radius:0; border-left:0; border-right:0; box-shadow:none }
+    }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation:none !important; scroll-behavior:auto !important } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#app-main">Skip to app</a>
+  <aside class="prototype-intro" aria-label="試作の使い方" lang="ja">
+    <div class="intro-inner">
+      <span class="prototype-label" lang="en">UNSIGNED / PROTOTYPE</span>
+      <p class="japanese"><strong>これは試作です。</strong>何から押すか: ① 下の欄に文を打つ ② 下に出る書き直しを見て直す ③ I approve にチェックして送る ④ 上の Admin に切り替えて運営の画面を見る。押してもお金はかからず、何も外へ送られません（この画面の中だけで動きます）</p>
+    </div>
+  </aside>
+  <section class="prototype-toolbar" aria-label="Prototype controls">
+    <div class="toolbar-inner">
+      <div class="control-group"><span class="control-label" id="view-label">View</span><div class="segmented" role="group" aria-labelledby="view-label"><button type="button" data-view="respondent" aria-pressed="true">Respondent</button><button type="button" data-view="admin" aria-pressed="false">Admin</button></div></div>
+      <div class="control-group"><span class="control-label" id="width-label">Width</span><div class="segmented" role="group" aria-labelledby="width-label"><button type="button" data-size="mobile" aria-pressed="false">Mobile</button><button type="button" data-size="desktop" aria-pressed="true">Desktop</button></div></div>
+      <div class="control-group device-control"><span class="control-label" id="device-label">This device has on-device AI:</span><div class="segmented" role="group" aria-labelledby="device-label"><button type="button" data-device="yes" aria-pressed="true">Yes</button><button type="button" data-device="no" aria-pressed="false">No</button></div></div>
+      <span class="local-label">Local demo · no network</span>
+    </div>
+    <p class="toolbar-footnote">Fictional examples. AI is simulated. Changing device availability clears an unfinished response. Reload to reset all demo data.</p>
+  </section>
+  <div class="preview-stage">
+    <div class="app-shell" id="app-shell" data-size="desktop">
+      <main class="app" id="app-main" tabindex="-1">
+        <header class="app-header">
+          <span class="wordmark">Unsigned</span><span class="header-divider" aria-hidden="true"></span>
+          <nav class="admin-tabs" id="admin-tabs" role="tablist" aria-label="Admin sections" hidden>
+            <button type="button" role="tab" id="tab-themes" aria-controls="panel-themes" aria-selected="true" tabindex="0" data-tab="themes">Themes</button>
+            <button type="button" role="tab" id="tab-questions" aria-controls="panel-questions" aria-selected="false" tabindex="-1" data-tab="questions">Questions</button>
+            <button type="button" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1" data-tab="settings">Settings</button>
+          </nav>
+          <span class="pill header-context" id="header-context"><span class="dot" aria-hidden="true"></span>AI · On device</span>
+        </header>
+
+        <section id="respondent-view" aria-label="Respondent check-in">
+          <div id="response-form">
+            <div class="respondent-grid">
+              <section class="response-editor" aria-label="Your response">
+                <p class="eyebrow"><span class="tiny-line" aria-hidden="true"></span>A little clarity, every week</p>
+                <h1>This week’s check-in</h1>
+                <p class="question-count">Question 1 of 1</p>
+                <p class="question" id="current-question">What would make handoffs easier?</p>
+                <div id="private-flow">
+                  <div class="card private-card">
+                    <label class="field-title" for="raw-response">Your words · Private</label>
+                    <span class="privacy-caption" id="raw-privacy">Never leaves this device</span>
+                    <textarea id="raw-response" rows="4" maxlength="1200" placeholder="What would help your team? Start with your own words…" aria-describedby="raw-privacy raw-help" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                    <div class="input-footer"><span id="raw-help">Only the version you approve can be sent.</span><span id="raw-count">0 / 1200</span></div>
+                  </div>
+                  <div class="example-row"><span>Try a fictional example</span><select id="example-select" aria-label="Fictional example"><option value="handoffs">Handoffs</option><option value="focus">Focus time</option><option value="decisions">Decision context</option></select><button class="text-button" type="button" id="load-example">Insert example</button></div>
+                  <div class="ai-bridge" id="ai-bridge" aria-hidden="true"><span class="pill bridge-pill"><span class="dot"></span>On-device AI</span></div>
+                  <section class="card draft-card" aria-labelledby="draft-title" id="draft-card">
+                    <div class="draft-heading"><h2 id="draft-title">Live neutral draft</h2><span class="status" id="draft-status">Waiting for your words</span></div>
+                    <label class="sr-only" for="neutral-draft">Neutral draft to review</label>
+                    <textarea id="neutral-draft" rows="3" maxlength="1200" readonly placeholder="Your neutral rewrite will appear here." aria-describedby="draft-note draft-version" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                    <div class="draft-controls"><div class="draft-actions"><button class="text-button" id="edit-draft" type="button" disabled>Edit draft</button><button class="text-button" id="regenerate" type="button" disabled>Regenerate</button></div><span class="version" id="draft-version">Source v0 · No draft yet</span></div>
+                    <p class="draft-note" id="draft-note">Pause for one second to create a private rewrite.</p>
+                  </section>
+                </div>
+                <section class="card fallback-card" id="fallback-flow" aria-labelledby="fallback-title" hidden>
+                  <span class="pill">Private alternative · No AI</span>
+                  <h2 id="fallback-title">This device can't rewrite privately</h2>
+                  <p>Your words will not be sent to cloud AI. Choose a topic and a short template instead. No free-text response is collected here.</p>
+                  <fieldset><legend>1. What would help?</legend><div class="choice-grid">
+                    <label class="choice"><input type="radio" name="fallback-topic" value="handoffs">Clearer handoffs</label>
+                    <label class="choice"><input type="radio" name="fallback-topic" value="focus">Focus time</label>
+                    <label class="choice"><input type="radio" name="fallback-topic" value="decisions">Decision context</label>
+                  </div></fieldset>
+                  <label class="template-label" for="fallback-template">2. Complete your short response</label>
+                  <select id="fallback-template" disabled><option value="">Choose a topic first</option></select>
+                  <div class="structured-preview"><span class="eyebrow">Your response to approve</span><p id="structured-answer">Choose a topic and template to preview your response.</p></div>
+                </section>
+              </section>
+              <aside class="timeline" aria-labelledby="timeline-title">
+                <h2 id="timeline-title">What leaves your device</h2>
+                <ol class="flow-list">
+                  <li><span class="step-number">1</span><div class="step-text"><strong id="flow-one-title">Typed here</strong><span id="flow-one-note">Private</span></div></li>
+                  <li><span class="step-number">2</span><div class="step-text"><strong id="flow-two-title">Rewritten here</strong><span id="flow-two-note">On device</span></div></li>
+                  <li><span class="step-number">3</span><div class="step-text"><strong id="flow-three-title">Approved rewrite only</strong><span>Sends</span></div></li>
+                </ol>
+                <div class="device-boundary">Device boundary</div>
+                <div class="cloud-receives"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 48h30a13 13 0 0 0 0-26 17 17 0 0 0-32-1 14 14 0 0 0 2 27Z"/></svg><strong>Cloud receives approved text</strong></div>
+                <p class="timeline-footnote">You stay in control of the words that leave.</p>
+              </aside>
+            </div>
+            <div class="approval-bar">
+              <label class="approve-label"><input id="approve" type="checkbox" disabled aria-describedby="approval-help">I approve this version</label>
+              <button class="primary-button" id="send-response" type="button" disabled>Send approved response<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+              <p class="approval-help" id="approval-help">Review a complete draft before approving. Cloud sees only the approved rewrite.</p>
+            </div>
+          </div>
+          <section class="receipt" id="receipt" aria-labelledby="receipt-title" hidden>
+            <div class="receipt-symbol"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div>
+            <p class="eyebrow">Response complete · Local simulation</p>
+            <h1 id="receipt-title" tabindex="-1">Your approved words. Only those.</h1>
+            <p>Your response has been added to the fictional theme data in this page. Nothing was sent over the network.</p>
+            <div class="card payload-card"><div class="payload-heading"><h2>What was sent</h2><span>Simulated payload</span></div><pre id="sent-json" aria-label="Simulated sent JSON"></pre><div class="receipt-facts"><span>No original text</span><span>No edit history</span><span>No person identifier</span></div></div>
+            <div class="receipt-actions"><button class="primary-button" id="receipt-admin" type="button">See themes in Admin<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="secondary-button" id="next-respondent" type="button">Next fictional respondent</button></div>
+            <p class="receipt-note">Each new fictional respondent represents a distinct person for this demo. Repeat clicks on Send never add people. Reloading the page clears everything.</p>
+          </section>
+        </section>
+
+        <section id="admin-view" class="admin-main" aria-label="Admin workspace" hidden>
+          <section id="panel-themes" role="tabpanel" aria-labelledby="tab-themes" tabindex="0">
+            <div class="page-heading"><div><h1>Theme landscape</h1><p>Shared patterns from approved rewrites</p></div><span class="demo-tag">Fictional check-in · Week 01</span></div>
+            <div class="privacy-banner"><svg viewBox="0 0 32 36" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m16 3 12 5v10c0 8-12 15-12 15S4 26 4 18V8Z"/></svg><div class="privacy-banner-text"><strong>Raw responses are never stored</strong><p>Cloud AI receives approved rewrites only.</p></div></div>
+            <section class="landscape" aria-label="Themes with at least three distinct respondents">
+              <div class="map-topline"><span class="eyebrow">Shared signals</span><span id="theme-count">Visible themes</span></div>
+              <div class="map-canvas" id="theme-map" data-count="2"></div>
+              <div class="map-caption"><div class="threshold-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><div><strong>Below 3 people: hidden</strong><span>No small-group counts or text shown.</span></div></div><p class="connection-note">Connections show related topics, not people. On small screens, themes appear in reading order.</p></div>
+            </section>
+            <section class="card question-workbench" aria-labelledby="question-workbench-title">
+              <div class="workbench-heading"><span class="pill">AI · Device first</span><h2 id="question-workbench-title">Draft next week’s question</h2></div>
+              <div class="question-output"><label for="question-draft">Next check-in</label><textarea id="question-draft" rows="2" maxlength="240" placeholder="Generate a question from the visible themes." aria-describedby="execution-location" autocomplete="off" spellcheck="false"></textarea><div class="execution-row"><span class="execution-location" id="execution-location">Not run yet</span><span id="next-route">Next run: on device</span></div></div>
+              <div class="workbench-actions"><button type="button" class="primary-button" id="use-question" disabled>Use draft</button><button type="button" class="text-button" id="generate-question">Generate draft</button><span class="use-note">Saves a draft. Never publishes.</span></div>
+            </section>
+            <p id="adoption-message" class="adoption-message" role="status" hidden>Added to Questions as a draft. Nothing is scheduled or published.</p>
+            <div class="card legend"><span class="legend-label">Respondent bands <span style="font-weight:400">(distinct people)</span></span><div class="legend-bands"><span class="legend-item"><i class="swatch" aria-hidden="true"></i>3–5</span><span class="legend-item"><i class="swatch medium" aria-hidden="true"></i>6–8</span><span class="legend-item"><i class="swatch high" aria-hidden="true"></i>9+</span></div><span class="legend-explanation">Strength = mention frequency, not sentiment.</span></div>
+          </section>
+          <section id="panel-questions" role="tabpanel" aria-labelledby="tab-questions" tabindex="0" hidden>
+            <div class="page-heading"><div><h1>Questions</h1><p>A thoughtful next question starts as a draft.</p></div><span class="demo-tag">Human review required</span></div>
+            <div class="card questions-card"><h2>Next week’s check-in</h2><p>Questions selected with Use draft appear here. Nothing is scheduled or published by this prototype.</p><div id="no-saved-question" class="excluded">No draft selected yet. Start with the question helper in Themes.</div><div class="saved-question" id="saved-question" hidden><span class="pill">Draft only · Not scheduled</span><blockquote id="saved-question-text"></blockquote><p id="saved-question-location"></p></div><button class="secondary-button" id="back-to-themes" type="button">Back to Themes</button></div>
+          </section>
+          <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+            <div class="page-heading"><div><h1>Settings</h1><p>Clear boundaries for people and AI.</p></div><span class="demo-tag">Documentation only</span></div>
+            <section class="card settings-card" aria-labelledby="agents-title"><span class="pill">Interface preview · Not connected</span><h2 id="agents-title" style="margin-top:16px">For AI agents</h2><p>These are the proposed tools. This prototype only documents them; it exposes no working agent endpoint.</p>
+              <dl class="tool-list">
+                <div class="tool-item"><dt><code>get_themes</code></dt><dd>Returns aggregated themes and respondent bands only. Themes with fewer than 3 distinct people are excluded.</dd></div>
+                <div class="tool-item"><dt><code>draft_check_in_question</code></dt><dd>Creates a question draft from visible themes. Prefers on-device AI; uses cloud AI only when on-device AI is unavailable.</dd></div>
+                <div class="tool-item"><dt><code>schedule_check_in</code></dt><dd>Places a proposed check-in in draft status only. A human must confirm before it can be scheduled or published.</dd></div>
+              </dl>
+              <div class="excluded"><h3>Never exposed through these tools</h3><ul><li>Raw responses</li><li>Themes with fewer than 3 people, including their text or counts</li><li>Individual responses, even approved rewrites</li></ul></div>
+              <p class="settings-note">The respondent’s simulated payload is shown only in their own receipt. Admin sees aggregate themes. No tool above can be invoked from this page.</p>
+            </section>
+          </section>
+        </section>
+        <footer class="app-footnote"><span>Private words. Shared understanding.</span><span>Prototype · Simulated AI · Memory only</span></footer>
+      </main>
+    </div>
+  </div>
+  <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p lang="ja" style="padding:24px">この試作の操作には JavaScript が必要です。外部への通信は行いません。</p></noscript>
+
+  <script id="prototype-core">
+  'use strict';
+  // Everything is a local fixture. No SDK, persistence, endpoint, or network transport.
+  const QUESTION_ID = 'check-in-001';
+  const EXAMPLES = Object.freeze({
+    handoffs: 'As the only release lead, I chased Maya on Tuesday for the notes. A shared checklist would help.',
+    focus: 'As the only designer, I had five meetings with Alex on Monday. More focus time would help.',
+    decisions: 'Jordan changed the plan on Friday. As the only analyst, I could not find the reason for the decision.'
+  });
+  const THEME_DEFINITIONS = Object.freeze({
+    handoffs: { title:'Clearer handoffs', summary:'A shared checklist could make handoffs easier.' },
+    focus: { title:'Focus time', summary:'More uninterrupted time would help deep work.' },
+    decisions: { title:'Decision context', summary:'Capture the reasons behind key decisions.' }
+  });
+  const TEMPLATE_OPTIONS = Object.freeze({
+    handoffs: ['A shared checklist could help.', 'A central place for handoff notes could help.', 'A consistent handoff format could help.'],
+    focus: ['Protected focus time could help.', 'Fewer recurring meetings could help.', 'More asynchronous updates could help.'],
+    decisions: ['Recording the reasons for decisions could help.', 'A shared decision log could help.', 'Clearer context before decisions could help.']
+  });
+  function topicFor(text) {
+    if (/decision|reason|context|決定|判断|背景|理由/i.test(text)) return 'decisions';
+    if (/focus|meeting|interrupt|集中|会議/i.test(text)) return 'focus';
+    return 'handoffs';
+  }
+  // Production boundary A: replace this fixed response function with ON-DEVICE ONLY inference.
+  function rewriteOnDeviceMock(raw) {
+    const topic = topicFor(raw);
+    return {
+      handoffs:'Handoff notes are sometimes hard to find. A shared checklist could help.',
+      focus:'Uninterrupted work time is sometimes limited. Protected focus time could help.',
+      decisions:'The reasons behind decisions can be hard to find. A shared decision log could help.'
+    }[topic];
+  }
+  class PrototypeModel {
+    constructor({setTimer=(fn,ms)=>setTimeout(fn,ms), clearTimer=(t)=>clearTimeout(t), onChange=()=>{}}={}) {
+      this.setTimer=setTimer; this.clearTimer=clearTimer; this.onChange=onChange;
+      this.timers=new Set(); this.request=0; this.device=true; this.person=1;
+      // Fictional distinct respondents; exact low counts never reach the admin renderer.
+      this.groups={
+        handoffs:{people:new Set(['h1','h2']), mentions:2},
+        focus:{people:new Set(['f1','f2','f3','f4']), mentions:5},
+        decisions:{people:new Set(['d1','d2','d3','d4','d5','d6']), mentions:8}
+      };
+      this.resetResponse();
+    }
+    emit() { this.onChange(this); }
+    cancel() { this.request++; this.timers.forEach(t=>this.clearTimer(t)); this.timers.clear(); }
+    later(fn,ms) { const t=this.setTimer(()=>{this.timers.delete(t);fn();},ms); this.timers.add(t); }
+    resetResponse() {
+      this.cancel(); this.raw=''; this.rawVersion=0; this.draft=''; this.draftVersion=-1;
+      this.edited=false; this.editing=false; this.approved=false; this.phase='empty';
+      this.sent=null; this.fallbackTopic=''; this.templateIndex='';
+    }
+    setDevice(available) {
+      if (this.device===available) return;
+      this.device=available;
+      if (!this.sent) this.resetResponse(); else this.cancel();
+      this.emit();
+    }
+    setRaw(value) {
+      if (!this.device || this.sent) return;
+      this.cancel(); this.raw=String(value).slice(0,1200); this.rawVersion++; this.approved=false;
+      if (this.edited) { this.phase='stale'; this.editing=false; }
+      else if (!this.raw.trim()) { this.draft=''; this.draftVersion=-1; this.phase='empty'; }
+      else {
+        this.phase='waiting'; const v=this.rawVersion, token=this.request;
+        this.later(()=>this.startRewrite(token,v),1000);
+      }
+      this.emit();
+    }
+    valid(token,version) { return token===this.request && version===this.rawVersion && this.device && !this.edited && !this.sent; }
+    startRewrite(token,version) {
+      if (!this.valid(token,version)) return;
+      const answer=rewriteOnDeviceMock(this.raw);
+      this.phase='rewriting'; this.draft=''; this.draftVersion=-1; this.emit();
+      this.later(()=>this.grow(answer,0,token,version),450);
+    }
+    grow(answer,length,token,version) {
+      if (!this.valid(token,version)) return;
+      const next=Math.min(answer.length,length+14); this.draft=answer.slice(0,next);
+      if (next===answer.length) { this.phase='ready'; this.draftVersion=version; }
+      this.emit();
+      if (next<answer.length) this.later(()=>this.grow(answer,next,token,version),45);
+    }
+    regenerate() {
+      if (!this.device || this.sent || !this.raw.trim()) return;
+      this.cancel(); this.edited=false; this.editing=false; this.approved=false;
+      this.startRewrite(this.request,this.rawVersion);
+    }
+    beginEdit() {
+      if (!this.device || this.sent || !['ready','edited'].includes(this.phase)) return;
+      this.cancel(); this.edited=true; this.editing=true; this.phase='edited'; this.approved=false; this.emit();
+    }
+    editDraft(value) {
+      if (!this.editing || this.sent || this.phase==='stale') return;
+      this.draft=String(value).slice(0,1200); this.edited=true; this.approved=false; this.phase='edited'; this.emit();
+    }
+    setFallback(topic,index='') {
+      if (this.device || this.sent || !Object.hasOwn(TEMPLATE_OPTIONS,topic)) return;
+      this.cancel(); this.fallbackTopic=topic; this.templateIndex=index; this.rawVersion++; this.approved=false;
+      const option=index==='' ? undefined : TEMPLATE_OPTIONS[topic][Number(index)];
+      this.draft=option ? THEME_DEFINITIONS[topic].title+': '+option : '';
+      this.draftVersion=this.rawVersion; this.phase=option?'ready':'empty'; this.emit();
+    }
+    canApprove() {
+      return !this.sent && ['ready','edited'].includes(this.phase) && !!this.draft.trim() && this.draftVersion===this.rawVersion;
+    }
+    approve(value) { this.approved=!!value && this.canApprove(); this.emit(); }
+    // Production boundary B: send ONLY this allowlisted payload. No raw or edit history.
+    submit() {
+      if (!this.approved || !this.canApprove()) return null;
+      const payload=Object.freeze({question_id:QUESTION_ID, approved_rewrite:this.draft.trim()});
+      this.aggregateApprovedMock(payload,'demo-person-'+this.person);
+      this.cancel(); this.sent=payload; this.phase='sent'; this.raw=''; this.draft='';
+      this.edited=false; this.editing=false; this.approved=false; this.emit(); return payload;
+    }
+    // Production boundary C: CLOUD ONLY aggregation of approved text. Local fixtures here.
+    // demoPerson is a local harness identity, never a field of the sent payload.
+    aggregateApprovedMock(payload,demoPerson) {
+      const key=topicFor(payload.approved_rewrite), group=this.groups[key];
+      if (!group.people.has(demoPerson)) { group.people.add(demoPerson); group.mentions++; }
+    }
+    publicThemes() {
+      return Object.keys(THEME_DEFINITIONS).filter(key=>this.groups[key].people.size>=3).map(key=>{
+        const group=this.groups[key], count=group.people.size;
+        return {key,...THEME_DEFINITIONS[key],strength:group.mentions>=6?'High':'Medium',band:count>=9?'9+':count>=6?'6–8':'3–5'};
+      });
+    }
+    nextRespondent() { if (!this.sent) return; this.person++; this.resetResponse(); this.emit(); }
+  }
+  // Production boundary D: capability check -> device first -> cloud only if unavailable.
+  // Both routes below are static local fixtures, not actual AI calls.
+  function questionFixture(themes) {
+    if (themes.some(t=>t.key==='handoffs')) return 'What would make handoffs easier?';
+    if (themes.some(t=>t.key==='decisions')) return 'What context would help your team make clearer decisions?';
+    return 'What would help your team protect time for focused work?';
+  }
+  function draftQuestionOnDeviceMock(themes) { return {text:questionFixture(themes), location:'Ran on device'}; }
+  function draftQuestionInCloudMock(themes) { return {text:questionFixture(themes), location:'Ran in cloud (fallback)'}; }
+  function runQuestionDraftMock(deviceAvailable,themes) {
+    return deviceAvailable ? draftQuestionOnDeviceMock(themes) : draftQuestionInCloudMock(themes);
+  }
+  </script>
+  <script id="prototype-ui">
+  'use strict';
+  const $=id=>document.getElementById(id);
+  const $$=selector=>Array.from(document.querySelectorAll(selector));
+  const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let activeView='respondent', activeTab='themes', lastPhase='', renderedThemeKey='';
+  let questionRun=0, questionBusy=false, questionResult=null, adoptedQuestion=null;
+  const model=new PrototypeModel({onChange:render});
+  const checkIcon='<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="currentColor"/><path d="m5 10 3 3 7-7" stroke="white" stroke-width="1.5"/></svg>';
+  function announce(message) { $('announcer').textContent=message; }
+  function setValue(id,value) { if ($(id).value!==value) $(id).value=value; }
+  function render() {
+    const m=model, sent=!!m.sent;
+    $('response-form').hidden=sent; $('receipt').hidden=!sent;
+    $('private-flow').hidden=!m.device; $('fallback-flow').hidden=m.device;
+    setValue('raw-response',m.raw); setValue('neutral-draft',m.draft);
+    $('raw-count').textContent=m.raw.length+' / 1200';
+    $('neutral-draft').readOnly=!m.editing;
+    $('ai-bridge').classList.toggle('processing',m.phase==='rewriting');
+    $('draft-card').setAttribute('aria-busy',String(m.phase==='rewriting'));
+    const states={empty:'Waiting for your words',waiting:'Waiting for a pause',rewriting:'Rewriting privately…',ready:'Ready to review',edited:'Your edited draft',stale:'Source changed',sent:'Approved'};
+    $('draft-status').innerHTML=(m.phase==='ready'?checkIcon:'')+escapeHTML(states[m.phase]);
+    $('draft-version').textContent='Source v'+m.rawVersion+' · '+(m.draftVersion<0?'No completed draft':'Draft v'+m.draftVersion);
+    $('draft-note').textContent={
+      empty:'Pause for one second to create a private rewrite.',
+      waiting:'Waiting for the latest words. Any previous approval has been cleared.',
+      rewriting:'Removing names, timing and role details with a simulated local rewrite.',
+      ready:'Names, timing and role details removed. Fixed example — review before approving.',
+      edited:'Your edits are protected. Only Regenerate can replace this draft.',
+      stale:'Your edited draft is protected. Select Regenerate to use the changed source.',
+      sent:'Only your approved version was used.'
+    }[m.phase];
+    $('edit-draft').disabled=!m.device || !['ready','edited'].includes(m.phase);
+    $('edit-draft').textContent=m.editing?'Editing draft':'Edit draft';
+    $('regenerate').disabled=!m.device || !m.raw.trim() || m.phase==='rewriting' || sent;
+    $('approve').checked=m.approved; $('approve').disabled=!m.canApprove();
+    $('send-response').disabled=!(m.approved && m.canApprove());
+    $('approval-help').textContent=m.approved?'This exact version is approved. Changes will clear your approval.':m.canApprove()?'Review the text, then approve this version. Only approved text can leave.':m.device?'Review a complete draft before approving. Cloud sees only the approved rewrite.':'Choose a topic and template, then approve the completed response.';
+    $('structured-answer').textContent=m.device || !m.draft?'Choose a topic and template to preview your response.':m.draft;
+    $$('input[name="fallback-topic"]').forEach(el=>el.checked=el.value===m.fallbackTopic);
+    $('fallback-template').disabled=!m.fallbackTopic;
+    if ($('fallback-template').dataset.topic!==m.fallbackTopic) {
+      $('fallback-template').dataset.topic=m.fallbackTopic;
+      $('fallback-template').innerHTML='<option value="">'+(m.fallbackTopic?'Choose a short template':'Choose a topic first')+'</option>'+(m.fallbackTopic?TEMPLATE_OPTIONS[m.fallbackTopic].map((text,i)=>'<option value="'+i+'">'+escapeHTML(text)+'</option>').join(''):'');
+    }
+    setValue('fallback-template',String(m.templateIndex));
+    $('flow-one-title').textContent=m.device?'Typed here':'Selected here';
+    $('flow-two-title').textContent=m.device?'Rewritten here':'Templated here';
+    $('flow-three-title').textContent=m.device?'Approved rewrite only':'Approved response only';
+    if (sent) $('sent-json').textContent=JSON.stringify(m.sent,null,2);
+    $$('[data-device]').forEach(el=>el.setAttribute('aria-pressed',String((el.dataset.device==='yes')===m.device)));
+    $('header-context').innerHTML='<span class="dot" aria-hidden="true"></span>'+(activeView==='admin'?'Cloud AI · Themes':m.device?'AI · On device':'Private · No AI');
+    $('next-route').textContent='Next run: '+(m.device?'on device':'cloud (fallback)');
+    if (lastPhase!==m.phase) {
+      if (m.phase==='ready') announce(m.device?'Neutral draft ready to review.':'Structured response ready to review.');
+      if (m.phase==='stale') announce('Source changed. Your edited draft is protected; regenerate before approving.');
+      if (m.phase==='rewriting') announce('Rewriting privately on this device. Simulated AI.');
+      lastPhase=m.phase;
+    }
+    renderThemes();
+  }
+  function renderThemes() {
+    const themes=model.publicThemes(), key=JSON.stringify(themes);
+    if (key===renderedThemeKey) return;
+    renderedThemeKey=key;
+    $('theme-map').dataset.count=String(themes.length);
+    const lines=themes.length===3?'<path d="M35 50 C55 50 48 22 76 24"/><path d="M35 50 C55 50 48 78 76 76"/>':'<path d="M25 50 C45 22 55 78 75 50"/>';
+    const connections='<svg class="connections" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="2" stroke-dasharray="1 7" stroke-linecap="round" vector-effect="non-scaling-stroke">'+lines+'</g></svg>';
+    $('theme-map').innerHTML=connections+themes.map(t=>{
+      const level=t.band==='3–5'?1:t.band==='6–8'?2:3;
+      return '<article class="theme-island" data-theme="'+t.key+'"><h2>'+escapeHTML(t.title)+'</h2><p>'+escapeHTML(t.summary)+'</p><div class="island-meta"><span>Strength:<b class="strength-badge">'+t.strength+'</b></span><span>Respondent band: <b>'+t.band+' people</b></span></div><div class="band-track" aria-hidden="true">'+[1,2,3].map(n=>'<span data-level="'+n+'" class="'+(level===n?'active':'')+'"></span>').join('')+'</div></article>';
+    }).join('');
+    $('theme-count').textContent=themes.length+' visible themes · Approved responses only';
+  }
+  function setView(view) {
+    activeView=view;
+    $('respondent-view').hidden=view!=='respondent'; $('admin-view').hidden=view!=='admin'; $('admin-tabs').hidden=view!=='admin';
+    $$('[data-view]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.view===view)));
+    render();
+    if (view==='admin' && !questionResult && !questionBusy) generateQuestion();
+  }
+  function setTab(tab) {
+    activeTab=tab;
+    $$('[data-tab]').forEach(el=>{const chosen=el.dataset.tab===tab;el.setAttribute('aria-selected',String(chosen));el.tabIndex=chosen?0:-1;});
+    ['themes','questions','settings'].forEach(name=>$('panel-'+name).hidden=name!==tab);
+  }
+  function generateQuestion() {
+    const token=++questionRun;
+    // Capture actual route and ONLY public themes at the start, never relabel on a toggle.
+    const route=model.device, themes=model.publicThemes();
+    questionBusy=true;
+    $('use-question').disabled=true; $('generate-question').disabled=true; $('question-draft').readOnly=true;
+    $('execution-location').textContent='Drafting '+(route?'on device…':'in cloud (fallback)…');
+    $('question-draft').setAttribute('aria-busy','true');
+    $('adoption-message').hidden=true;
+    setTimeout(()=>{
+      if (token!==questionRun) return;
+      questionResult=runQuestionDraftMock(route,themes); questionBusy=false;
+      setValue('question-draft',questionResult.text);
+      $('execution-location').textContent=questionResult.location;
+      $('generate-question').textContent='Regenerate'; $('generate-question').disabled=false;
+      $('question-draft').readOnly=false; $('question-draft').setAttribute('aria-busy','false');
+      $('use-question').disabled=false; announce('Question draft ready. '+questionResult.location+'. Simulated.');
+    },650);
+  }
+  $$('[data-view]').forEach(el=>el.addEventListener('click',()=>setView(el.dataset.view)));
+  $$('.segmented [data-size]').forEach(el=>el.addEventListener('click',()=>{
+    $('app-shell').dataset.size=el.dataset.size;
+    $$('.segmented [data-size]').forEach(button=>button.setAttribute('aria-pressed',String(button===el)));
+  }));
+  $$('[data-device]').forEach(el=>el.addEventListener('click',()=>model.setDevice(el.dataset.device==='yes')));
+  $$('[data-tab]').forEach((el,index)=>{
+    el.addEventListener('click',()=>setTab(el.dataset.tab));
+    el.addEventListener('keydown',event=>{
+      const keys=['ArrowRight','ArrowLeft','Home','End']; if (!keys.includes(event.key)) return;
+      event.preventDefault(); const tabs=$$('[data-tab]');
+      const next=event.key==='Home'?0:event.key==='End'?2:(index+(event.key==='ArrowRight'?1:-1)+3)%3;
+      setTab(tabs[next].dataset.tab); tabs[next].focus();
+    });
+  });
+  $('raw-response').addEventListener('input',event=>model.setRaw(event.target.value));
+  $('load-example').addEventListener('click',()=>{model.setRaw(EXAMPLES[$('example-select').value]);$('raw-response').focus();});
+  $('edit-draft').addEventListener('click',()=>{model.beginEdit();$('neutral-draft').focus();});
+  $('neutral-draft').addEventListener('input',event=>model.editDraft(event.target.value));
+  $('regenerate').addEventListener('click',()=>model.regenerate());
+  $('approve').addEventListener('change',event=>model.approve(event.target.checked));
+  $('send-response').addEventListener('click',()=>{const payload=model.submit();if(payload){$('receipt-title').focus();announce('Approved response added locally. Nothing was sent over the network.');}});
+  $('receipt-admin').addEventListener('click',()=>{setTab('themes');setView('admin');$('tab-themes').focus();});
+  $('next-respondent').addEventListener('click',()=>{model.nextRespondent();(model.device?$('raw-response'):$('fallback-flow').querySelector('input')).focus();announce('New fictional respondent. Approval is cleared.');});
+  $$('input[name="fallback-topic"]').forEach(el=>el.addEventListener('change',()=>model.setFallback(el.value)));
+  $('fallback-template').addEventListener('change',event=>model.setFallback(model.fallbackTopic,event.target.value));
+  $('generate-question').addEventListener('click',generateQuestion);
+  $('question-draft').addEventListener('input',()=>{
+    $('use-question').disabled=questionBusy || !$('question-draft').value.trim() || !questionResult;
+    $('adoption-message').hidden=true;
+  });
+  $('use-question').addEventListener('click',()=>{
+    const text=$('question-draft').value.trim(); if (questionBusy || !questionResult || !text) return;
+    adoptedQuestion={text,location:questionResult.location};
+    $('no-saved-question').hidden=true; $('saved-question').hidden=false;
+    $('saved-question-text').textContent=adoptedQuestion.text;
+    $('saved-question-location').textContent=adoptedQuestion.location+' · '+(text===questionResult.text?'AI fixture':'Edited by you')+' · Human confirmation required before scheduling.';
+    $('adoption-message').hidden=false;
+    announce('Question saved as a local draft. Nothing is scheduled or published.');
+  });
+  $('back-to-themes').addEventListener('click',()=>{setTab('themes');$('tab-themes').focus();});
+  render();
+  </script>
+</body>
+</html>
