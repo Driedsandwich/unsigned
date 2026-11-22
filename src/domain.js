@@ -39,22 +39,39 @@ export function publicThemes(themes) {
     try { return [{ title: text(t.title, 100), summary: text(t.summary, 400), band: t.band }]; } catch { return []; }
   });
 }
-export function riskSpans(raw, candidate, { strict = false, originalRisks } = {}) {
+export function riskSpans(raw, candidate) {
   if (!Array.isArray(candidate)) throw new Error('Invalid risk output');
-  if (originalRisks) {
-    // An unlinked claim is not evidence of a residual source detail.
-    candidate = candidate.filter(r => Number.isInteger(r?.sourceRiskIndex) && r.sourceRiskIndex >= 0 && r.sourceRiskIndex < originalRisks.length);
-    candidate = candidate.filter(r => typeof r.text !== 'string' || !/^(?:(?:the|our|a|some|all)\s+)?(?:team|people|updates)$/i.test(r.text.trim()) || r.text.toLowerCase() === originalRisks[r.sourceRiskIndex].text.toLowerCase());
-  }
-  if (strict && (candidate.length > 30 || candidate.some(r => typeof r?.text !== 'string' || !r.text || !raw.includes(r.text)))) throw new Error('Unanchored draft risk output');
   const allowed = new Set(['name', 'date', 'weekday', 'uncommon role', 'other identifying detail']);
   return candidate.slice(0, 30).flatMap(r => {
     if (typeof r?.text !== 'string' || !r.text || !raw.includes(r.text)) return [];
-    const category = originalRisks ? originalRisks[r.sourceRiskIndex].category : r.category;
-    return [{ text: r.text, category: allowed.has(category) ? category : 'other identifying detail', ...(originalRisks ? { sourceRiskIndex: r.sourceRiskIndex } : {}) }];
+    return [{ text: r.text, category: allowed.has(r.category) ? r.category : 'other identifying detail' }];
   });
 }
-// Finite, conservative local aliases supplement (never replace) the semantic AI review.
+// Semantic claims are advisory only. Invalid/long spans can explain a note but
+// never become sentence highlights or deterministic approval requirements.
+export function semanticNotes(draft, candidate, originalRisks) {
+  if (!Array.isArray(candidate) || candidate.length > 30) throw new Error('Invalid semantic review');
+  return candidate.flatMap(r => {
+    if (!Number.isInteger(r?.sourceRiskIndex) || r.sourceRiskIndex < 0 || r.sourceRiskIndex >= originalRisks.length) return [];
+    const phrase = typeof r.text === 'string' ? r.text.trim() : '';
+    if (/^(?:(?:the|our|a|some|all)\s+)?(?:team|people|updates)$/i.test(phrase) && phrase.toLowerCase() !== originalRisks[r.sourceRiskIndex].text.toLowerCase()) return [];
+    const words = phrase.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
+    const short = words.length >= 1 && words.length <= 4 && !/[.!?\n\r]/u.test(phrase);
+    const spans = short ? literalSpans(draft, phrase).filter(({ start, end }) => {
+      // Even a short sentence is not an advisory term highlight.
+      const before = draft.slice(0, start).trimEnd(), after = draft.slice(end).trimStart();
+      return !((!before || /[.!?]$/.test(before)) && (!after || /^[.!?]/.test(after)));
+    }) : [];
+    return [{ sourceRiskIndex: r.sourceRiskIndex, category: originalRisks[r.sourceRiskIndex].category, text: spans.length ? phrase : '', spans }];
+  });
+}
+export function literalSpans(value, term) {
+  if (!term) return [];
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu');
+  return [...value.matchAll(pattern)].map(match => ({ start: match.index, end: match.index + match[0].length }));
+}
+// Only literal originals and this finite local alias table can gate approval.
 const ROLE_ALIASES = [
   ['qa', 'quality assurance', 'quality analyst', 'tester', 'testers', 'testing', 'test engineer'],
   ['release lead', 'release manager', 'release coordinator'],

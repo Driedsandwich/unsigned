@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { InferenceMode as modes } from 'firebase/ai';
 import { createInference, rawInput, approvedInput, adminInput, sourceLabel } from '../src/inference.js';
-import { residualRisks, participantRewrites, riskSpans } from '../src/domain.js';
+import { residualRisks, participantRewrites, semanticNotes } from '../src/domain.js';
 import { Respondent } from '../src/respondent.js';
 import { createDemoParticipation } from '../src/participation.js';
 
@@ -37,16 +37,16 @@ test('Deterministic review catches exact terms, case variants, weekdays and QA r
   for(const term of ['MAYA','testers','Tuesday','Tuesday standup','Quality Assurance','QA'])assert.ok(marked.includes(term),term);
   assert.deepEqual(residualRisks('The Mayan calendar and equality matter.',risks),[]);
 });
-test('Semantic review blocks an unfamiliar paraphrase beyond the finite alias table',async()=>{
+test('Semantic review advises on an unfamiliar short paraphrase without gating approval',async()=>{
   const draft='Those who validate the product learn last.';
   assert.deepEqual(residualRisks(draft,risks),[]);
-  const m=respondent(pipeline({draft,review:[{text:'Those who validate the product',sourceRiskIndex:2}]}).infer);
-  await ready(m);assert.equal(m.canApprove(),false);assert.equal(m.draftRisks[0].text,'Those who validate the product');
+  const m=respondent(pipeline({draft,review:[{text:'validate the product',sourceRiskIndex:2}]}).infer);
+  await ready(m);assert.equal(m.canApprove(),true);assert.deepEqual(m.draftRisks,[]);assert.equal(m.aiNotes[0].text,'validate the product');
 });
-test('Explicit retention unlocks approval for this version only; editing requires fresh review',async()=>{
+test('Explicit retention unlocks only this version; editing immediately reruns deterministic review',async()=>{
   const m=respondent(pipeline().infer);await ready(m);m.acceptRisks(true);assert.equal(m.canApprove(),true);
   m.approve(true);assert.equal(m.approved,true);m.beginEdit();m.editDraft('Share release changes sooner with the team.');
-  assert.equal(m.keepRisks,false);assert.equal(m.canApprove(),false);assert.equal(m.approved,false);
+  assert.equal(m.keepRisks,false);assert.equal(m.canApprove(),true);assert.equal(m.approved,false);
   await m.reviewDraft();assert.equal(m.canApprove(),true);assert.deepEqual(m.draftRisks,[]);
 });
 test('Source edits and regeneration clear explicit retention',async()=>{
@@ -54,12 +54,12 @@ test('Source edits and regeneration clear explicit retention',async()=>{
   assert.equal(m.keepRisks,false);assert.equal(m.canApprove(),false);
   const next=respondent(pipeline().infer);await ready(next);next.acceptRisks(true);await next.rewrite();assert.equal(next.keepRisks,false);
 });
-test('Approval and retention stay locked until the semantic check completes',async()=>{
+test('Deterministic retention and approval are available while semantic review is pending',async()=>{
   let resolve;let n=0;
   const m=respondent(async()=>++n===1?{value:risks}:n===2?{value:retained}:new Promise(r=>resolve=r));
-  m.setRaw(raw);const pending=m.rewrite();await tick();assert.equal(m.phase,'checking');
-  m.acceptRisks(true);m.approve(true);assert.equal(m.keepRisks,false);assert.equal(m.approved,false);
-  resolve({value:[],source:'on_device'});await pending;assert.equal(m.canApprove(),false);
+  m.setRaw(raw);const pending=m.rewrite();await tick();assert.equal(m.phase,'ready');assert.equal(m.reviewPending,true);assert.equal(m.canApprove(),false);
+  m.acceptRisks(true);m.approve(true);assert.equal(m.keepRisks,true);assert.equal(m.approved,true);
+  resolve({value:[],source:'on_device'});await pending;assert.equal(m.canApprove(),true);assert.equal(m.approved,true);
 });
 test('A stale semantic check cannot unlock an edited or newer draft',async()=>{
   const m=respondent(pipeline({draft:'Share updates sooner.'}).infer);await ready(m);m.beginEdit();
@@ -67,13 +67,13 @@ test('A stale semantic check cannot unlock an edited or newer draft',async()=>{
   m.editDraft('Second edit with Maya.');m.invalidate();resolve({value:[],source:'on_device'});await pending;
   assert.equal(m.draft,'Second edit with Maya.');assert.equal(m.canApprove(),false);
 });
-test('Malformed semantic review fails closed without sending any text',async()=>{
+test('Malformed semantic review preserves draft and deterministic retention without sending any text',async()=>{
   let n=0;const infer=createInference({modes,modelFactory:()=>({generateContent:async()=>result(++n===1?JSON.stringify(risks):n===2?retained:'not JSON')})});
-  const m=respondent(infer);await ready(m);assert.equal(m.device,'failed');assert.equal(m.raw,'');assert.equal(m.canApprove(),false);
+  const m=respondent(infer);await ready(m);assert.equal(m.device,'ready');assert.equal(m.raw,raw);assert.equal(m.draft,retained);assert.equal(m.canApprove(),false);assert.match(m.reviewWarning,/AI check unavailable.*Semantic draft check: error/);
 });
-test('Semantic risk claims that cannot be marked in the draft fail closed instead of silently disappearing',async()=>{
+test('Absent semantic phrases yield an advisory note without a highlight or structured fallback',async()=>{
   const m=respondent(pipeline({review:[{text:'invented paraphrase absent from draft',sourceRiskIndex:2}]}).infer);
-  await ready(m);assert.equal(m.device,'failed');assert.equal(m.canApprove(),false);assert.equal(m.raw,'');
+  await ready(m);assert.equal(m.device,'ready');assert.equal(m.canApprove(),false);assert.equal(m.raw,raw);assert.equal(m.aiNotes[0].text,'');assert.deepEqual(m.aiNotes[0].spans,[]);
 });
 test('Private review tokens cannot enter either cloud-capable feature',async()=>{
   const infer=createInference({modes,modelFactory:()=>assert.fail('No model allowed')});
@@ -164,15 +164,15 @@ test('Generic team, people and updates cannot become QA paraphrases even with a 
 test('Missing, string, fractional, negative and out-of-range original indexes are discarded', () => {
   const candidate = [undefined, null, '2', 0.5, -1, 3, 999].map(sourceRiskIndex => ({ text: 'Those who validate the product', sourceRiskIndex }));
   candidate.push({ text: 'not even in the draft' });
-  assert.deepEqual(riskSpans('Those who validate the product', candidate, { strict: true, originalRisks: risks }), []);
+  assert.deepEqual(semanticNotes('Those who validate the product', candidate, risks), []);
 });
-test('A semantic paraphrase takes its category from its numbered original risk', () => {
-  assert.deepEqual(riskSpans('Those who validate the product', [{ text: 'Those who validate the product', category: 'name', sourceRiskIndex: 2 }], { strict: true, originalRisks: risks }), [
-    { text: 'Those who validate the product', category: 'uncommon role', sourceRiskIndex: 2 }
+test('A semantic note takes its category from its numbered original risk', () => {
+  assert.deepEqual(semanticNotes('Those who validate the product', [{ text: 'validate the product', category: 'name', sourceRiskIndex: 2 }], risks), [
+    { text: 'validate the product', category: 'uncommon role', sourceRiskIndex: 2, spans: [{ start: 10, end: 30 }] }
   ]);
 });
 test('An empty original risk list cannot acquire new draft risks', () => {
-  assert.deepEqual(riskSpans('Maya leads the team.', [{ text: 'Maya', sourceRiskIndex: 0 }], { strict: true, originalRisks: [] }), []);
+  assert.deepEqual(semanticNotes('Maya leads the team.', [{ text: 'Maya', sourceRiskIndex: 0 }], []), []);
   assert.deepEqual(residualRisks('Quality assurance testers.', []), []);
 });
 for (const term of ['quality assurance', 'testers']) test(`Fixed QA alias ${term} still blocks approval without a linked AI claim`, async () => {

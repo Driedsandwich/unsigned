@@ -2,7 +2,7 @@ import { loadConfig } from './config.js';
 import { createServices, deferred } from './services.js';
 import { Respondent } from './respondent.js';
 import { sourceLabel } from './inference.js';
-import { questionId } from './domain.js';
+import { questionId, literalSpans } from './domain.js';
 import { EXAMPLES, TEMPLATES } from './fixtures.js';
 const $ = id => document.getElementById(id);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -29,14 +29,15 @@ function markRisks(raw, risks, target) {
   const fragment = document.createDocumentFragment(); let offset = 0;
   const spans = [];
   for (const r of risks) {
-    let from = 0, index;
-    while ((index = raw.indexOf(r.text, from)) !== -1) { spans.push({ start: index, end: index + r.text.length, category: r.category }); from = index + r.text.length; }
+    for (const span of r.spans ?? literalSpans(raw, r.text)) spans.push({ ...span, category: r.advisory ? `AI note (advisory): ${r.category}` : r.category, advisory: r.advisory });
   }
   spans.sort((a,b) => a.start - b.start || b.end - a.end);
   for (const s of spans) {
     if (s.start < offset) continue;
     fragment.append(document.createTextNode(raw.slice(offset, s.start)));
-    const mark = document.createElement('mark'); mark.textContent = raw.slice(s.start, s.end); mark.title = s.category; fragment.append(mark); offset = s.end;
+    const mark = document.createElement('mark'); mark.textContent = raw.slice(s.start, s.end); mark.title = s.category;
+    if (s.advisory) mark.setAttribute('aria-label', `AI note (advisory): ${mark.textContent}`);
+    fragment.append(mark); offset = s.end;
   }
   fragment.append(document.createTextNode(raw.slice(offset))); $(target).replaceChildren(fragment);
 }
@@ -64,14 +65,20 @@ function renderResponse() {
   $('risk-source').textContent = sourceLabel(m.riskResult);
   $('risk-note').textContent = m.riskResult ? (m.risks.length ? 'Marked details may identify the writer. Review the rewrite before approving.' : 'No details flagged. This is not a guarantee of anonymity.') : 'Review names, dates and uncommon roles before approving.';
   markRisks(m.raw, m.risks, 'risk-marks');
-  markRisks(m.draft, m.draftRisks, 'draft-risk-marks');
+  markRisks(m.draft, [...m.draftRisks, ...m.aiNotes.map(r => ({ ...r, advisory: true }))], 'draft-risk-marks');
   $('draft-risk-review').hidden = !m.draft;
-  $('draft-risk-source').textContent = sourceLabel(m.reviewResult);
-  $('draft-risk-note').textContent = !m.reviewResult || m.phase !== 'ready' ? 'This version needs a complete on-device check. Approval is locked.' : m.draftRisks.length ? 'Marked details remain. Edit them out, or explicitly choose to keep them before approving.' : 'No residual details flagged. Review carefully; this is not a guarantee of anonymity.';
+  $('draft-risk-source').textContent = m.reviewPending ? 'AI advisory check · On device · Checking…' : sourceLabel(m.reviewResult);
+  $('draft-risk-note').textContent = m.phase !== 'ready' ? 'Wait for a complete current draft before approving.' : m.draftRisks.length ? 'Exact original terms or fixed aliases remain. Edit them out, or explicitly choose to keep them before approving.' : 'No exact original terms or fixed aliases remain. Review carefully; this is not a guarantee of anonymity.';
+  const notes = [...new Set(m.aiNotes.map(r => r.sourceRiskIndex))].map(index => {
+    const original = m.risks[index].text;
+    return `AI note: may still point to “${original.length > 80 ? original.slice(0, 77) + '…' : original}”`;
+  });
+  $('draft-ai-notes').textContent = m.reviewWarning || (notes.length ? `${notes.join(' · ')}. These AI notes do not require retention.` : '');
+  $('draft-ai-notes').hidden = !m.reviewWarning && !notes.length;
   $('keep-risks-label').hidden = !m.draftRisks.length;
   $('keep-risks').checked = m.keepRisks;
   $('keep-risks').disabled = m.phase !== 'ready' || m.sending;
-  $('ai-bridge').classList.toggle('processing', ['preparing','rewriting','checking'].includes(m.phase));
+  $('ai-bridge').classList.toggle('processing', m.reviewPending || ['preparing','rewriting','checking'].includes(m.phase));
   $('header-context').textContent = m.device === 'ready' ? 'AI · On device' : 'Structured answer · No AI';
   const options = TEMPLATES[m.topic]?.options ?? [];
   const select = $('fallback-template');
