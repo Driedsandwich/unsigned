@@ -121,7 +121,7 @@ test('Missing configuration enables Demo; invalid present configuration never si
   assert.throws(()=>resolveConfig({firebase:{apiKey:'REPLACE',appId:'x',projectId:'x',authDomain:'x'},appCheckSiteKey:'x',cloudModel:'x'}));
 });
 test('Complete local configuration selects real Firebase mode',()=>{
-  const value={firebase:{apiKey:'test-placeholder',appId:'test-app',projectId:'test-project',authDomain:'test.invalid'},appCheckSiteKey:'test-site',cloudModel:'test-model'};
+  const value={firebase:{apiKey:'test',appId:'test-app',projectId:'test-project',authDomain:'test.invalid'},appCheckSiteKey:'test-site',cloudModel:'test-model'};
   assert.equal(resolveConfig(value).demo,false);
 });
 test('Preparing state offers a structured answer and rejects a late local result',async()=>{

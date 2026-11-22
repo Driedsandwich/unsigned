@@ -1,4 +1,4 @@
-export const PLACEHOLDER = Object.freeze({ apiKey: 'demo-not-a-real-api-key', projectId: 'unsigned-demo-placeholder', appId: '1:000000000000:web:unsigned-demo', authDomain: 'unsigned-demo-placeholder.invalid' });
+export const PLACEHOLDER = Object.freeze({ apiKey: 'demo', projectId: 'unsigned-demo-placeholder', appId: '1:000000000000:web:unsigned-demo', authDomain: 'unsigned-demo-placeholder.invalid' });
 export function resolveConfig(value) {
   if (value === undefined || value === null) return { demo: true, firebase: PLACEHOLDER };
   const firebase = value.firebase;

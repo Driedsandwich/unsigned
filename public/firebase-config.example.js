@@ -2,7 +2,7 @@
 // Model availability and console setup must be verified in your project.
 globalThis.UNSIGNED_CONFIG = {
   firebase: {
-    apiKey: 'REPLACE_WITH_LOCAL_VALUE',
+    apiKey: '', // fill locally
     authDomain: 'REPLACE_WITH_LOCAL_VALUE',
     projectId: 'REPLACE_WITH_LOCAL_VALUE',
     appId: 'REPLACE_WITH_LOCAL_VALUE'
