@@ -10,7 +10,9 @@ async function run() {
   log('userAgent', navigator.userAgent.match(/Chrome\/[\d.]+/)?.[0] || '?');
   log('LanguageModel in window', typeof window.LanguageModel);
   try { log('LanguageModel.availability()', await window.LanguageModel?.availability?.()); } catch (e) { log('availability error', String(e)); }
-  const app = initializeApp({ apiKey: 'dummy-not-a-key', projectId: 'x209-spike-dummy', appId: '1:000000000000:web:0000000000000000' });
+  // The spike called initializeApp() with a placeholder Firebase web config whose values were made up
+  // (no real project existed). On-device inference still ran because ONLY_ON_DEVICE never calls the backend.
+  const app = initializeApp(window.PLACEHOLDER_FIREBASE_CONFIG);
   const ai = getAI(app, { backend: new GoogleAIBackend() });
   const model = getGenerativeModel(ai, { mode: InferenceMode.ONLY_ON_DEVICE });
   const t0 = performance.now();
