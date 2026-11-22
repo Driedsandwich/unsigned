@@ -6,3 +6,8 @@ dist/
 firebase-debug.log
 .firebase/
 appcheck-debug-token*
+public/firebase-config.js
+public/*debug*.js
+mcp/private/
+*.log
+files/

@@ -1,0 +1,14 @@
+# Unsigned
+Private weekly team check-ins. Apache-2.0. See README.md for setup and limitations.
+All inference uses firebase/ai (firebase 13.4.0). Routing source of truth: src/policy.js.
+Raw input: ONLY_ON_DEVICE rewrite and identifying-detail detection. Never forward to cloud.
+Cloud grouping: approved rewrites only; fewer than three supporting responses are suppressed.
+Administrator question drafting: PREFER_ON_DEVICE. Demo cloud steps are simulated.
+MCP: node mcp/server.js (stdio, local user access). No inference.
+get_themes: aggregate title, summary, respondent band only.
+draft_check_in_question: administrator request returned as draft; no inference.
+schedule_check_in: local draft file only; never schedules or publishes.
+Never expose raw or individual approved responses or themes supported by fewer than three responses.
+MCP live mode reads only an administrator-exported safe theme file; it has no Firestore credentials.
+Response counts are not proof of distinct humans; anonymous identity is not stored with responses.
+Do not commit real Firebase configuration, App Check debug values, personal data or secrets.

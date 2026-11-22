@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function admin() {
+      return request.auth != null
+        && request.auth.token.unsigned_admin == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function anonymous() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    function nonempty(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max && value.matches('.*[^\\s].*');
+    }
+    match /checkins/{id} {
+      allow get: if admin() || (anonymous() && resource.data.status == 'open');
+      allow list: if admin();
+      allow create: if admin()
+        && request.resource.data.keys().hasAll(['question', 'status', 'created_at'])
+        && request.resource.data.keys().hasOnly(['question', 'status', 'created_at'])
+        && nonempty(request.resource.data.question, 240)
+        && request.resource.data.status == 'draft'
+        && request.resource.data.created_at == request.time;
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['question', 'status'])
+        && nonempty(request.resource.data.question, 240)
+        && request.resource.data.status in ['draft', 'open', 'closed'];
+      allow delete: if false;
+    }
+    match /responses/{id} {
+      allow create: if anonymous()
+        && request.resource.data.keys().hasAll(['question_id', 'approved_rewrite', 'created_at'])
+        && request.resource.data.keys().hasOnly(['question_id', 'approved_rewrite', 'created_at'])
+        && request.resource.data.question_id is string
+        && request.resource.data.question_id.matches('^[a-zA-Z0-9_-]{1,100}$')
+        && nonempty(request.resource.data.approved_rewrite, 1200)
+        && request.resource.data.created_at == request.time
+        && get(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)).data.status == 'open';
+      allow read: if admin();
+      allow update, delete: if false;
+    }
+    match /themes/{checkinId}/items/{id} {
+      allow read, delete: if admin();
+      allow create, update: if admin()
+        && request.resource.data.keys().hasAll(['title', 'summary', 'band'])
+        && request.resource.data.keys().hasOnly(['title', 'summary', 'band'])
+        && nonempty(request.resource.data.title, 100)
+        && nonempty(request.resource.data.summary, 400)
+        && request.resource.data.band in ['3–5', '6–8', '9+'];
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
