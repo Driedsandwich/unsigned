@@ -1,6 +1,25 @@
 {
-  "name": "unsigned", "version": "1.0.0", "private": true, "type": "module", "license": "Apache-2.0",
-  "scripts": { "dev": "vite --host 127.0.0.1", "build": "npm test && vite build", "preview": "vite preview --host 127.0.0.1", "test": "node --test tests/*.test.js", "mcp": "node mcp/server.js" },
-  "dependencies": { "firebase": "13.4.0", "@modelcontextprotocol/sdk": "^1.0.0", "zod": "^3.25.0" },
-  "devDependencies": { "vite": "^7.0.0" }
+  "name": "unsigned",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "npm test && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js",
+    "mcp": "node mcp/server.js",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-unsigned \"node --test tests/rules/*.test.js\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "firebase": "13.4.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase-tools": "^15.37.0",
+    "vite": "^7.0.0"
+  }
 }

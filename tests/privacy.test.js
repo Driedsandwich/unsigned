@@ -10,7 +10,8 @@ import { createTools } from '../mcp/tools.js';
 import { InferenceMode } from 'firebase/ai';
 const modes = InferenceMode;
 const raw = 'Maya changed the plan on Tuesday. I am the only release lead.';
-const rows = ['One neutral suggestion.','Another neutral suggestion.','A third neutral suggestion.'].map(approved_rewrite=>({approved_rewrite}));
+const rows = ['One neutral suggestion.','Another neutral suggestion.','A third neutral suggestion.'].map((approved_rewrite,i)=>({id:`response-${i}`,approved_rewrite}));
+const participants = rows.map((r,i)=>({id:`person-${i}`,response_id:r.id}));
 const result = (value, source = 'on_device') => ({ response: { text:()=>value, inferenceSource:source } });
 function harness(response = result('Neutral words.')) {
   const calls=[];
@@ -53,11 +54,11 @@ test('Unexpected or absent SDK inferenceSource fails closed',async()=>{
 });
 test('Cloud grouping only receives approved rewrites and always uses ONLY_IN_CLOUD',async()=>{
   const h=harness(result('[{"title":"Clarity","summary":"Shared context helps.","members":[0,1,2]}]','in_cloud'));
-  const r=await h.infer('groupThemes',approvedInput(rows.map(r=>({...r,raw,uid:'private-id'}))));
+  const r=await h.infer('groupThemes',approvedInput(rows.map(r=>({...r,raw,uid:'private-id'})), participants));
   assert.equal(h.calls[0].mode,modes.ONLY_IN_CLOUD); assert.doesNotMatch(h.calls[0].prompt,/Maya|private-id|uid/); assert.equal(r.value[0].band,'3–5');
 });
 test('Grouping with fewer than three approved responses is rejected before inference',()=>{
-  for(const count of [0,1,2]) assert.throws(()=>approvedInput(rows.slice(0,count)),/three/);
+  for(const count of [0,1,2]) assert.throws(()=>approvedInput(rows.slice(0,count), participants),/three/);
 });
 test('Administrator drafting uses SDK PREFER_ON_DEVICE and reports cloud fallback accurately',async()=>{
   const h=harness(result('What would help next week?','in_cloud'));
@@ -80,11 +81,11 @@ test('Failed device call releases queue without cloud fallback',async()=>{
 test('Superseded queued jobs never create a model',async()=>{
   const h=harness();assert.equal(await h.infer('rewrite',rawInput(raw),{current:()=>false}),null);assert.equal(h.calls.length,0);
 });
-test('Demo keeps real local AI and simulates every cloud-capable step without an SDK call',async()=>{
-  const calls=[];const infer=createInference({modes,demo:true,modelFactory:mode=>({generateContent:async()=>{calls.push(mode);return result('[]');}})});
+test('Demo keeps real raw-text AI and simulates grouping plus unavailable-device question fallback',async()=>{
+  const calls=[];const infer=createInference({modes,demo:true,availability:async()=>'unavailable',modelFactory:mode=>({generateContent:async()=>{calls.push(mode);return result('[]');}})});
   await infer('rewrite',rawInput(raw));await infer('identifyRisks',rawInput(raw));
-  for(const [feature,input] of [['groupThemes',approvedInput(rows)],['draftQuestion',adminInput('Ask about next week.')]]){
-    const r=await infer(feature,input);assert.equal(r.simulated,true);assert.equal(r.source,null);assert.equal(sourceLabel(r),'Simulated · no AI inference');
+  for(const [feature,input] of [['groupThemes',approvedInput(rows, participants)],['draftQuestion',adminInput('Ask about next week.')]]){
+    const r=await infer(feature,input);assert.equal(r.simulated,true);assert.equal(r.source,null);assert.equal(sourceLabel(r),feature==='draftQuestion'?'Cloud fallback (simulated in demo)':'Simulated · no AI inference');
   }
   assert.deepEqual(calls,[modes.ONLY_ON_DEVICE,modes.ONLY_ON_DEVICE]);
 });
@@ -201,6 +202,6 @@ test('Streaming rewrite grows only from on-device chunks and returns trimmed fin
   assert.deepEqual(chunks,[{s:'Neutral',source:'on_device'},{s:'Neutral words.',source:'on_device'}]);assert.equal(r.value,'Neutral words.');
 });
 test('Partial rewrite cannot be approved and stale streamed text is ignored',async()=>{
-  let release,partial;const m=model(async(feature,token,options)=>{partial=options.onPartial;partial('Growing draft','on_device');await new Promise(r=>release=r);return {value:'Completed draft',source:'on_device'};});
-  m.setRaw(raw);const pending=m.rewrite();assert.equal(m.draft,'Growing draft');assert.equal(m.canApprove(),false);m.setRaw('A newer source');m.invalidate();partial('Stale partial','on_device');assert.notEqual(m.draft,'Stale partial');release();await pending;assert.equal(m.canApprove(),false);
+  let release,partial;const m=model(async(feature,token,options)=>{if(feature==='identifyRisks')return {value:[],source:'on_device'};partial=options.onPartial;partial('Growing draft','on_device');await new Promise(r=>release=r);return {value:'Completed draft',source:'on_device'};});
+  m.setRaw(raw);const pending=m.rewrite();await tick();assert.equal(m.draft,'Growing draft');assert.equal(m.canApprove(),false);m.setRaw('A newer source');m.invalidate();partial('Stale partial','on_device');assert.notEqual(m.draft,'Stale partial');release();await pending;assert.equal(m.canApprove(),false);
 });

@@ -55,7 +55,8 @@
                     <textarea id="neutral-draft" rows="3" maxlength="1200" readonly placeholder="Your neutral rewrite will appear here." aria-describedby="draft-note draft-version" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
                     <div class="draft-controls"><div class="draft-actions"><button class="text-button" id="edit-draft" type="button" disabled>Edit draft</button><button class="text-button" id="regenerate" type="button" disabled>Regenerate</button></div><span class="version" id="draft-version">Source v0 · No draft yet</span></div>
                     <p class="draft-note" id="draft-note">Pause for one second to create a private rewrite.</p>
-                    <section class="risk-review" aria-label="Potential identifying details"><strong>Potential identifying details</strong><p id="risk-source">Not run yet</p><p id="risk-marks"></p><p id="risk-note">Review names, dates and uncommon roles before approving.</p></section>
+                    <section class="risk-review" aria-label="Potential identifying details in your words"><strong>Potential identifying details</strong><p id="risk-source">Not run yet</p><p id="risk-marks"></p><p id="risk-note">Review names, dates and uncommon roles before approving.</p></section>
+                    <section class="risk-review" id="draft-risk-review" aria-label="Identifying details remaining in draft" hidden><strong>Details remaining in this draft</strong><p id="draft-risk-source">Not run yet</p><p id="draft-risk-marks"></p><p id="draft-risk-note"></p><label id="keep-risks-label" class="approve-label" hidden><input type="checkbox" id="keep-risks" aria-describedby="draft-risk-note"> I explicitly choose to keep the marked identifying details in this version.</label></section>
                   </section>
                 </div>
                 <section class="card fallback-card" id="fallback-flow" aria-labelledby="fallback-title" hidden>
@@ -105,10 +106,10 @@
           <section id="panel-themes" role="tabpanel" aria-labelledby="tab-themes" tabindex="0">
             <div class="page-heading"><div><h1>Theme landscape</h1><p>Shared patterns from approved rewrites</p></div><span class="demo-tag">Current check-in</span></div>
             <div class="privacy-banner"><svg viewBox="0 0 32 36" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m16 3 12 5v10c0 8-12 15-12 15S4 26 4 18V8Z"/></svg><div class="privacy-banner-text"><strong>Raw responses are never stored</strong><p>Cloud AI receives approved rewrites only.</p></div></div>
-            <div class="draft-controls"><button id="aggregate" class="secondary-button">Group approved responses</button><span id="aggregate-source" class="version">Not run yet</span></div><section class="landscape" aria-label="Themes with at least three distinct respondents">
+            <div class="draft-controls"><button id="aggregate" class="secondary-button">Group approved responses</button><span id="aggregate-source" class="version">Not run yet</span></div><section class="landscape" aria-label="Themes with at least three distinct respondents, counted by anonymous sign-in per question">
               <div class="map-topline"><span class="eyebrow">Shared signals</span><span id="theme-count">Visible themes</span></div>
               <ol class="map-canvas" id="theme-map" data-count="0"></ol>
-              <div class="map-caption"><div class="threshold-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><div><strong>Below 3 people: hidden</strong><span>No small-group counts or text shown.</span></div></div><p class="connection-note">Themes describe related topics, not people. On small screens, themes appear in reading order.</p></div>
+              <div class="map-caption"><div class="threshold-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><div><strong>Below 3 people: hidden</strong><span>One person = one anonymous sign-in per question. No small-group counts or text shown.</span></div></div><p class="connection-note">Themes describe related topics, not people. On small screens, themes appear in reading order.</p></div>
             </section>
             <div class="admin-request"><label for="question-request">What should next week’s question explore?</label><textarea id="question-request" maxlength="1200" placeholder="Ask about a small improvement for next week."></textarea></div><section class="card question-workbench" aria-labelledby="question-workbench-title">
               <div class="workbench-heading"><span class="pill">AI · Device first</span><h2 id="question-workbench-title">Draft next week’s question</h2></div>
@@ -116,7 +117,7 @@
               <div class="workbench-actions"><button type="button" class="primary-button" id="use-question" disabled>Use draft</button><button type="button" class="text-button" id="generate-question">Generate draft</button><span class="use-note">Saves a draft. Never publishes.</span></div>
             </section>
             <p id="adoption-message" class="adoption-message" role="status" hidden>Added to Questions as a draft. Nothing is scheduled or published.</p>
-            <div class="card legend"><span class="legend-label">Respondent bands <span style="font-weight:400">(approved submissions; see README)</span></span><div class="legend-bands"><span class="legend-item"><i class="swatch" aria-hidden="true"></i>3–5</span><span class="legend-item"><i class="swatch medium" aria-hidden="true"></i>6–8</span><span class="legend-item"><i class="swatch high" aria-hidden="true"></i>9+</span></div><span class="legend-explanation">Strength = support band, not sentiment.</span></div>
+            <div class="card legend"><span class="legend-label">Respondent bands <span style="font-weight:400">(distinct anonymous sign-ins per question)</span></span><div class="legend-bands"><span class="legend-item"><i class="swatch" aria-hidden="true"></i>3–5</span><span class="legend-item"><i class="swatch medium" aria-hidden="true"></i>6–8</span><span class="legend-item"><i class="swatch high" aria-hidden="true"></i>9+</span></div><span class="legend-explanation">Strength = support band, not sentiment.</span></div>
           </section>
           <section id="panel-questions" role="tabpanel" aria-labelledby="tab-questions" tabindex="0" hidden>
             <div class="page-heading"><div><h1>Questions</h1><p>A thoughtful next question starts as a draft.</p></div><span class="demo-tag">Human review required</span></div>
@@ -126,7 +127,7 @@
             <div class="page-heading"><div><h1>Settings</h1><p>Clear boundaries for people and AI.</p></div><span class="demo-tag">Local MCP interface</span></div>
             <section class="card settings-card" aria-labelledby="agents-title"><span class="pill">MCP · Local stdio</span><h2 id="agents-title" style="margin-top:16px">For AI agents</h2><p>Connect the local Node MCP server described in README. These tools never perform AI inference.</p>
               <dl class="tool-list">
-                <div class="tool-item"><dt><code>get_themes</code></dt><dd>Returns aggregated themes and respondent bands only. Themes with fewer than 3 distinct people are excluded.</dd></div>
+                <div class="tool-item"><dt><code>get_themes</code></dt><dd>Returns aggregated themes and respondent bands only. Themes supported by fewer than 3 distinct anonymous sign-ins per question are excluded.</dd></div>
                 <div class="tool-item"><dt><code>draft_check_in_question</code></dt><dd>Returns the administrator’s request as an editable draft. No inference and no publishing.</dd></div>
                 <div class="tool-item"><dt><code>schedule_check_in</code></dt><dd>Places a proposed check-in in draft status only. A human must confirm before it can be scheduled or published.</dd></div>
               </dl>

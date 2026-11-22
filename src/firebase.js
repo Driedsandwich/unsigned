@@ -3,9 +3,10 @@ import { getAI, getGenerativeModel, GoogleAIBackend, InferenceMode } from 'fireb
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, getIdTokenResult, signOut, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, query, where, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
-import { createInference } from './inference.js';
+import { createInference, DEVICE_OPTIONS } from './inference.js';
+import { createDemoParticipation } from './participation.js';
 import { validatePayload, publicThemes, questionId, text } from './domain.js';
-import { DEMO_CHECKIN, DEMO_RESPONSES, DEMO_THEMES } from './fixtures.js';
+import { DEMO_CHECKIN, DEMO_THEMES } from './fixtures.js';
 
 export function createServices(config) {
   const app = initializeApp(config.firebase);
@@ -18,12 +19,18 @@ export function createServices(config) {
   const ai = getAI(app, { backend: new GoogleAIBackend() });
   const models = new Map();
   const infer = createInference({ demo: config.demo, modes: InferenceMode, modelFactory(mode) {
-    if (!models.has(mode)) models.set(mode, getGenerativeModel(ai, { mode, ...(mode !== InferenceMode.ONLY_ON_DEVICE ? { inCloudParams: { model: config.cloudModel } } : {}) }));
+    if (!models.has(mode)) models.set(mode, getGenerativeModel(ai, {
+      mode, onDeviceParams: { createOptions: structuredClone(DEVICE_OPTIONS) },
+      ...(!config.demo && mode !== InferenceMode.ONLY_ON_DEVICE ? { inCloudParams: { model: config.cloudModel } } : {})
+      // Public SDK request option: a race in availability must never reach a real cloud in Demo.
+    }, config.demo ? { baseUrl: 'http://127.0.0.1:9', timeout: 1000 } : undefined));
     return models.get(mode);
   } });
   let auth, db, adminAuth, adminDb;
   let admin = false;
-  const memory = { responses: DEMO_RESPONSES.map(approved_rewrite => ({ approved_rewrite })), themes: publicThemes(DEMO_THEMES), drafts: new Map() };
+  const participation = config.demo ? createDemoParticipation() : null;
+  let demoUid = crypto.randomUUID();
+  const memory = { themes: new Map([[DEMO_CHECKIN.id, publicThemes(DEMO_THEMES)]]), drafts: new Map() };
   if (!config.demo) {
     auth = getAuth(app); db = getFirestore(app);
     // Separate auth contexts keep respondent writes anonymous while an admin is signed in.
@@ -62,22 +69,32 @@ export function createServices(config) {
       return { id: snap.id, question: text(snap.data().question, 240), status: 'open' };
     },
     responseId() { return crypto.randomUUID(); },
+    nextDemoRespondent() { if (!config.demo) throw new Error('Demo only'); demoUid = crypto.randomUUID(); },
     async submit(id, payload) {
       const clean = validatePayload(payload);
-      if (config.demo) { if (!memory.responses.some(r => r.localId === id)) memory.responses.push({ ...clean, localId: id }); return; }
+      if (config.demo) { participation.submit(demoUid, id, clean); return; }
       // Reuse this random document ID on retry; no author field is ever stored.
       const ref = doc(db, 'responses', id);
-      await setDoc(ref, { ...clean, created_at: serverTimestamp() });
+      if (!auth.currentUser?.isAnonymous) throw new Error('Anonymous sign-in required');
+      const marker = doc(db, 'checkins', clean.question_id, 'participants', auth.currentUser.uid);
+      const batch = writeBatch(db);
+      batch.set(ref, { ...clean, created_at: serverTimestamp() });
+      batch.set(marker, { response_id: id, created_at: serverTimestamp() });
+      await batch.commit();
     },
     async approved(id) {
       await requireAdmin(); questionId(id);
-      if (config.demo) return memory.responses.map(r => ({ approved_rewrite: r.approved_rewrite }));
+      if (config.demo) return participation.approved(id);
       const snap = await getDocs(query(collection(adminDb, 'responses'), where('question_id', '==', id)));
-      return snap.docs.map(d => ({ approved_rewrite: text(d.data().approved_rewrite) }));
+      const markers = await getDocs(collection(adminDb, 'checkins', id, 'participants'));
+      return { rows: snap.docs.map(d => ({ id: d.id, approved_rewrite: text(d.data().approved_rewrite) })),
+        participants: markers.docs.map(d => ({ id: d.id, response_id: d.data().response_id })) };
     },
     async themes(id) {
       await requireAdmin(); questionId(id);
-      if (config.demo) return publicThemes(memory.themes);
+      if (config.demo) return publicThemes(memory.themes.get(id));
+      const participants = await getDocs(collection(adminDb, 'checkins', id, 'participants'));
+      if (participants.size < 3) return [];
       const snap = await getDocs(collection(adminDb, 'themes', id, 'items'));
       return publicThemes(snap.docs.map(d => d.data()));
     },
@@ -85,7 +102,7 @@ export function createServices(config) {
       await requireAdmin(); questionId(id);
       const safe = publicThemes(themes);
       if (safe.length > 30) throw new Error('Too many themes');
-      if (config.demo) { memory.themes = safe; return safe; }
+      if (config.demo) { memory.themes.set(id, safe); return safe; }
       const target = collection(adminDb, 'themes', id, 'items');
       const old = await getDocs(target);
       if (old.size > 400) throw new Error('Theme store requires administrator maintenance');

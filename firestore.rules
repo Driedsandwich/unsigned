@@ -35,7 +35,26 @@ service cloud.firestore {
         && request.resource.data.question_id.matches('^[a-zA-Z0-9_-]{1,100}$')
         && nonempty(request.resource.data.approved_rewrite, 1200)
         && request.resource.data.created_at == request.time
-        && get(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)).data.status == 'open';
+        && get(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)).data.status == 'open'
+        && !exists(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)/participants/$(request.auth.uid))
+        && existsAfter(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)/participants/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)/participants/$(request.auth.uid)).data.response_id == id
+        && getAfter(/databases/$(database)/documents/checkins/$(request.resource.data.question_id)/participants/$(request.auth.uid)).data.created_at == request.time;
+      allow read: if admin();
+      allow update, delete: if false;
+    }
+    match /checkins/{questionId}/participants/{uid} {
+      allow create: if anonymous() && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['response_id', 'created_at'])
+        && request.resource.data.keys().hasOnly(['response_id', 'created_at'])
+        && request.resource.data.response_id is string
+        && request.resource.data.response_id.matches('^[a-zA-Z0-9_-]{1,100}$')
+        && request.resource.data.created_at == request.time
+        && get(/databases/$(database)/documents/checkins/$(questionId)).data.status == 'open'
+        && !exists(/databases/$(database)/documents/responses/$(request.resource.data.response_id))
+        && existsAfter(/databases/$(database)/documents/responses/$(request.resource.data.response_id))
+        && getAfter(/databases/$(database)/documents/responses/$(request.resource.data.response_id)).data.question_id == questionId
+        && getAfter(/databases/$(database)/documents/responses/$(request.resource.data.response_id)).data.created_at == request.time;
       allow read: if admin();
       allow update, delete: if false;
     }

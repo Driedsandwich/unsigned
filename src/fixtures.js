@@ -17,4 +17,6 @@ export const DEMO_RESPONSES = Object.freeze([
   'Protected focus time would help.', 'Fewer recurring meetings would help.', 'More uninterrupted work time would help.', 'A quiet work block would help.',
   'A decision log would help.', 'Capture reasons for decisions.', 'Keep decision context accessible.', 'Write down why plans changed.', 'Share decision summaries.', 'Make decision context easier to find.'
 ]);
-export const DEMO_QUESTION = 'What small change would give the team more clarity next week?';
+export const DEMO_THEME_EVIDENCE = Object.freeze(DEMO_THEMES.map((theme, index) => ({
+  title: theme.title, summary: theme.summary, members: index === 0 ? [0,1,2,3] : [4,5,6,7,8,9]
+})));

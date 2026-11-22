@@ -26,7 +26,7 @@ function updateAuth() {
   $('generate-question').disabled = !admin || questionBusy;
   $('use-question').disabled = !admin || questionBusy || !questionResult || !$('question-draft').value.trim();
 }
-function markRisks(raw, risks) {
+function markRisks(raw, risks, target) {
   const fragment = document.createDocumentFragment(); let offset = 0;
   const spans = [];
   for (const r of risks) {
@@ -39,7 +39,7 @@ function markRisks(raw, risks) {
     fragment.append(document.createTextNode(raw.slice(offset, s.start)));
     const mark = document.createElement('mark'); mark.textContent = raw.slice(s.start, s.end); mark.title = s.category; fragment.append(mark); offset = s.end;
   }
-  fragment.append(document.createTextNode(raw.slice(offset))); $('risk-marks').replaceChildren(fragment);
+  fragment.append(document.createTextNode(raw.slice(offset))); $(target).replaceChildren(fragment);
 }
 function renderResponse() {
   const m = respondent; if (!m) return;
@@ -51,7 +51,7 @@ function renderResponse() {
   if ($('neutral-draft').value !== m.draft) $('neutral-draft').value = m.draft;
   $('raw-count').textContent = `${m.raw.length} / 1200`;
   $('raw-response').disabled = m.sending;
-  $('neutral-draft').readOnly = !m.editing || m.sending;
+  $('neutral-draft').readOnly = !m.editing || m.sending || m.phase === 'stale';
   $('approve').checked = m.approved; $('approve').disabled = !m.canApprove();
   $('send-response').disabled = !m.canApprove() || !m.approved;
   $('send-response').textContent = m.sending ? 'Sending approved response…' : 'Send approved response';
@@ -64,7 +64,14 @@ function renderResponse() {
   $('draft-note').textContent = `${sourceLabel(m.rewriteResult)} · ${m.edited ? 'Edited by you. ' : ''}Review for identifying details; AI can miss them.`;
   $('risk-source').textContent = sourceLabel(m.riskResult);
   $('risk-note').textContent = m.riskResult ? (m.risks.length ? 'Marked details may identify the writer. Review the rewrite before approving.' : 'No details flagged. This is not a guarantee of anonymity.') : 'Review names, dates and uncommon roles before approving.';
-  markRisks(m.raw, m.risks);
+  markRisks(m.raw, m.risks, 'risk-marks');
+  markRisks(m.draft, m.draftRisks, 'draft-risk-marks');
+  $('draft-risk-review').hidden = !m.draft;
+  $('draft-risk-source').textContent = sourceLabel(m.reviewResult);
+  $('draft-risk-note').textContent = !m.reviewResult || m.phase !== 'ready' ? 'This version needs a complete on-device check. Approval is locked.' : m.draftRisks.length ? 'Marked details remain. Edit them out, or explicitly choose to keep them before approving.' : 'No residual details flagged. Review carefully; this is not a guarantee of anonymity.';
+  $('keep-risks-label').hidden = !m.draftRisks.length;
+  $('keep-risks').checked = m.keepRisks;
+  $('keep-risks').disabled = m.phase !== 'ready' || m.sending;
   $('ai-bridge').classList.toggle('processing', ['preparing','rewriting','checking'].includes(m.phase));
   $('header-context').textContent = m.device === 'ready' ? 'AI · On device' : 'Structured answer · No AI';
   const options = TEMPLATES[m.topic]?.options ?? [];
@@ -90,7 +97,7 @@ function renderThemes() {
     const title = document.createElement('h2'); title.textContent = t.title;
     const summary = document.createElement('p'); summary.textContent = t.summary;
     const meta = document.createElement('div'); meta.className = 'island-meta';
-    meta.textContent = `Strength: ${t.band === '9+' ? 'High' : 'Medium'} · Respondent band: ${t.band} people`;
+    meta.textContent = `Strength: ${t.band === '9+' ? 'High' : 'Medium'} · Respondent band: ${t.band} anonymous sign-ins`;
     const track = document.createElement('div'); track.className = 'band-track'; track.setAttribute('aria-hidden', 'true');
     const level = ['3–5','6–8','9+'].indexOf(t.band) + 1;
     for (let i=1;i<=3;i++) { const span = document.createElement('span'); span.dataset.level = String(i); if(i<=level) span.className='active'; track.append(span); }
@@ -108,10 +115,10 @@ async function aggregate() {
   if (!admin || aggregateBusy) return;
   aggregateBusy = true; const epoch = adminEpoch; updateAuth(); tell('Grouping approved rewrites…');
   try {
-    const rows = await services.approved(checkin.id);
+    const { rows, participants } = await services.approved(checkin.id);
     if (!admin || epoch !== adminEpoch) return;
-    if (rows.length < 3) { tell('At least 3 approved responses are required. No cloud inference ran.'); return; }
-    const result = await services.infer('groupThemes', approvedInput(rows));
+    if (participants.length < 3) { tell('At least 3 distinct anonymous sign-ins with approved responses are required. No cloud inference ran.'); return; }
+    const result = await services.infer('groupThemes', approvedInput(rows, participants));
     if (!admin || epoch !== adminEpoch) return;
     const saved = await services.saveThemes(checkin.id, result.value);
     if (!admin || epoch !== adminEpoch) return;
@@ -143,6 +150,7 @@ async function start() {
     catch { checkin = { id, unavailable: true }; $('current-question').textContent = 'This check-in is unavailable. Ask your administrator for an open check-in link.'; $('response-form').hidden = true; tell('No open check-in found. Administrators can sign in to create a draft.'); }
     function newResponse() {
       if (checkin.unavailable) return;
+      respondent?.invalidate();
       respondent = new Respondent({ infer: services.infer, send: services.submit, question_id: checkin.id, responseId: services.responseId(), onChange: renderResponse });
       $('current-question').textContent = checkin.question; renderResponse();
     }
@@ -166,11 +174,12 @@ async function start() {
     $('neutral-draft').addEventListener('input', e => respondent?.editDraft(e.target.value));
     $('regenerate').addEventListener('click', () => respondent?.rewrite());
     $('approve').addEventListener('change', e => respondent?.approve(e.target.checked));
+    $('keep-risks').addEventListener('change', e => respondent?.acceptRisks(e.target.checked));
     $('send-response').addEventListener('click', async () => { const payload = await respondent?.submit(); if(payload) { $('receipt-title').focus(); tell(config.demo ? 'Saved in demo memory only. No cloud write occurred.' : 'Approved response accepted.'); } });
     $('structured-mode').addEventListener('click', () => respondent?.structured());
     $$('input[name="fallback-topic"]').forEach(el => el.addEventListener('change', () => { if(respondent?.phase==='preparing') respondent.structured('preparing'); respondent?.setTemplate(el.value); }));
     $('fallback-template').addEventListener('change', e => respondent?.setTemplate(respondent.topic,e.target.value));
-    $('next-respondent').addEventListener('click', newResponse);
+    $('next-respondent').addEventListener('click', () => { services.nextDemoRespondent(); newResponse(); });
     $('receipt-admin').addEventListener('click', () => { setView('admin'); if(config.demo && !admin) void login(); });
     $('back-to-themes').addEventListener('click', () => setTab('themes'));
     $('aggregate').addEventListener('click', aggregate);
