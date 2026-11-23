@@ -1,4 +1,5 @@
 export const EN_MESSAGES = {
+    docTitle: 'Unsigned — a private check-in',
     skipToApp: 'Skip to app',
     modeBannerLoading: 'Loading configuration…',
     modeBannerDemo: 'Demo mode — cloud steps are simulated',
@@ -41,6 +42,7 @@ export const EN_MESSAGES = {
     riskSectionOriginal: 'Potential identifying details',
     riskSectionDraft: 'Details remaining in this draft',
     keepRisksLabel: 'I explicitly choose to keep the exact original terms or fixed aliases in this version.',
+    confirmAdvisoryLabel: 'I have reviewed the on-device AI notes above.',
     fallbackPill: 'Private alternative · No AI',
     fallbackTitleUnavailable: "This device can't rewrite privately",
     fallbackTitlePreparing: 'Preparing on-device model',

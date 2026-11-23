@@ -77,6 +77,30 @@ export async function dictForTests() {
   return tables;
 }
 
+export function sourceLabelKey(result) {
+  if (result?.simulated && result.cloudFallback) return 'sourceSimulatedCloud';
+  if (result?.simulated) return 'sourceSimulated';
+  if (result?.source === 'on_device') return 'sourceOnDevice';
+  if (result?.source === 'in_cloud') return 'sourceInCloud';
+  return 'sourceNotRun';
+}
+
+export function paintText(el, key, vars = {}) {
+  if (!el) return;
+  el.dataset.i18n = key;
+  el.textContent = t(key, vars);
+}
+
+export function paintFree(el, text) {
+  if (!el) return;
+  delete el.dataset.i18n;
+  el.textContent = text;
+}
+
+export function paintSource(el, result) {
+  paintText(el, sourceLabelKey(result));
+}
+
 export function applyStaticI18n(root = document) {
   for (const el of root.querySelectorAll('[data-i18n]')) {
     const key = el.dataset.i18n;
@@ -89,6 +113,7 @@ export function applyStaticI18n(root = document) {
   for (const el of root.querySelectorAll('[data-i18n-aria]')) {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   }
+  if (root === document && typeof document !== 'undefined') document.title = t('docTitle');
 }
 
 export async function initI18n() {

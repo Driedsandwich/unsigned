@@ -57,17 +57,13 @@ function refreshExampleOptions() {
   select.value = value;
 }
 function refreshToolbarAuth() {
-  $('admin-login').textContent = config.demo ? i18n.t('openDemoAdmin') : i18n.t('signInGoogle');
-  if (!respondent) {
-    $('auth-status').textContent = config.demo ? i18n.t('authDemo') : i18n.t('authAnonymous');
-  }
+  i18n.paintText($('admin-login'), config.demo ? 'openDemoAdmin' : 'signInGoogle');
+  if (!respondent) i18n.paintText($('auth-status'), config.demo ? 'authDemo' : 'authAnonymous');
 }
 function refreshChrome() {
   if (!config) return;
-  $('mode-banner').dataset.i18n = config.demo ? 'modeBannerDemo' : 'modeBannerLive';
-  $('mode-banner').textContent = i18n.t($('mode-banner').dataset.i18n);
-  $('footer-mode').dataset.i18n = config.demo ? 'footerDemo' : 'footerLive';
-  $('footer-mode').textContent = i18n.t($('footer-mode').dataset.i18n);
+  i18n.paintText($('mode-banner'), config.demo ? 'modeBannerDemo' : 'modeBannerLive');
+  i18n.paintText($('footer-mode'), config.demo ? 'footerDemo' : 'footerLive');
   refreshToolbarAuth();
   i18n.applyStaticI18n();
   i18n.applyStaticI18n($('admin-view'));
@@ -79,7 +75,7 @@ function renderResponse() {
   const { templates } = fixtures();
   const preparing = m.phase === 'preparing';
   $('private-flow').hidden = m.path() === 'structured'; $('fallback-flow').hidden = m.path() !== 'structured';
-  $('fallback-title').textContent = preparing ? i18n.t('fallbackTitlePreparing') : i18n.t('fallbackTitleUnavailable');
+  i18n.paintText($('fallback-title'), preparing ? 'fallbackTitlePreparing' : 'fallbackTitleUnavailable');
   $('response-form').hidden = !!m.sent; $('receipt').hidden = !m.sent;
   if ($('raw-response').value !== m.raw) $('raw-response').value = m.raw;
   if ($('neutral-draft').value !== m.draft) $('neutral-draft').value = m.draft;
@@ -88,32 +84,38 @@ function renderResponse() {
   $('neutral-draft').readOnly = !m.editing || m.sending || m.phase === 'stale';
   $('approve').checked = m.approved; $('approve').disabled = !m.canApprove();
   $('send-response').disabled = !m.canApprove() || !m.approved;
-  $('send-response').textContent = m.sending ? i18n.t('sendingApproved') : i18n.t('sendApproved');
+  i18n.paintText($('send-response'), m.sending ? 'sendingApproved' : 'sendApproved');
   $('edit-draft').disabled = m.phase !== 'ready' || m.sending;
   $('regenerate').disabled = !m.raw.trim() || m.sending || ['preparing','rewriting','checking'].includes(m.phase);
   $('structured-mode').disabled = m.sending || !!m.sent;
-  $('draft-status').textContent = phaseStatus(m.phase);
-  $('draft-version').textContent = `${i18n.t('sourceVersion', { version: m.version })} · ${m.draftVersion < 0 ? i18n.t('draftVersionNone') : i18n.t('draftVersion', { version: m.draftVersion })}`;
-  $('draft-note').textContent = `${i18n.sourceLabelI18n(m.rewriteResult)} · ${m.edited ? i18n.t('draftNoteEdited') : ''}${i18n.t('draftNoteReview')}`;
-  $('risk-source').textContent = i18n.sourceLabelI18n(m.riskResult);
-  $('risk-note').textContent = m.riskResult ? (m.risks.length ? i18n.t('riskNoteFlagged') : i18n.t('riskNoteNone')) : i18n.t('riskNoteNotRun');
+  i18n.paintText($('draft-status'), { empty: 'statusEmpty', waiting: 'statusWaiting', preparing: 'statusPreparing', rewriting: 'statusRewriting', checking: 'statusChecking', ready: 'statusReady', stale: 'statusStale', structured: 'statusStructured' }[m.phase] ?? 'statusEmpty');
+  i18n.paintFree($('draft-version'), `${i18n.t('sourceVersion', { version: m.version })} · ${m.draftVersion < 0 ? i18n.t('draftVersionNone') : i18n.t('draftVersion', { version: m.draftVersion })}`);
+  i18n.paintFree($('draft-note'), `${i18n.sourceLabelI18n(m.rewriteResult)} · ${m.edited ? i18n.t('draftNoteEdited') : ''}${i18n.t('draftNoteReview')}`);
+  i18n.paintSource($('risk-source'), m.riskResult);
+  i18n.paintText($('risk-note'), m.riskResult ? (m.risks.length ? 'riskNoteFlagged' : 'riskNoteNone') : 'riskNoteNotRun');
   markRisks(m.raw, m.risks, 'risk-marks');
   markRisks(m.draft, [...m.draftRisks, ...m.aiNotes.map(r => ({ ...r, advisory: true }))], 'draft-risk-marks');
   $('draft-risk-review').hidden = !m.draft;
-  $('draft-risk-source').textContent = m.reviewPending ? i18n.t('reviewChecking') : i18n.sourceLabelI18n(m.reviewResult);
-  $('draft-risk-note').textContent = m.phase !== 'ready' ? i18n.t('draftRiskWait') : m.draftRisks.length ? i18n.t('draftRiskRemain') : i18n.t('draftRiskClear');
+  if (m.reviewPending) i18n.paintText($('draft-risk-source'), 'reviewChecking');
+  else i18n.paintSource($('draft-risk-source'), m.reviewResult);
+  i18n.paintText($('draft-risk-note'), m.phase !== 'ready' ? 'draftRiskWait' : m.draftRisks.length ? 'draftRiskRemain' : 'draftRiskClear');
   const notes = [...new Set(m.aiNotes.map(r => r.sourceRiskIndex))].map(index => {
     const original = m.risks[index].text;
     const snippet = original.length > 80 ? original.slice(0, 77) + '…' : original;
     return i18n.t('aiNoteTemplate', { text: snippet });
   });
-  $('draft-ai-notes').textContent = i18n.translateRespondentCopy(m.reviewWarning) || (notes.length ? `${notes.join(' · ')}. ${i18n.t('aiNoteNoRetention')}` : '');
-  $('draft-ai-notes').hidden = !m.reviewWarning && !notes.length;
+  const advisoryText = i18n.translateRespondentCopy(m.reviewWarning) || (notes.length ? `${notes.join(' · ')}. ${i18n.t('aiNoteNoRetention')}` : '');
+  i18n.paintFree($('draft-ai-notes'), advisoryText);
+  $('draft-ai-notes').hidden = !advisoryText;
+  $('draft-ai-notes').classList.toggle('ai-advisory-notes', !!notes.length || !!m.reviewWarning);
+  $('confirm-advisory-label').hidden = !m.needsAdvisoryConfirm();
+  $('confirm-advisory').checked = m.confirmAdvisory;
+  $('confirm-advisory').disabled = m.phase !== 'ready' || m.sending || !m.needsAdvisoryConfirm();
   $('keep-risks-label').hidden = !m.draftRisks.length;
   $('keep-risks').checked = m.keepRisks;
   $('keep-risks').disabled = m.phase !== 'ready' || m.sending;
   $('ai-bridge').classList.toggle('processing', m.reviewPending || ['preparing','rewriting','checking'].includes(m.phase));
-  $('header-context-text').textContent = m.device === 'ready' ? i18n.t('headerAiOnDevice') : i18n.t('headerStructured');
+  i18n.paintText($('header-context-text'), m.device === 'ready' ? 'headerAiOnDevice' : 'headerStructured');
   const options = templates[m.topic]?.options ?? [];
   const select = $('fallback-template');
   if (select.dataset.topic !== m.topic || select.dataset.locale !== i18n.getLocale()) {
@@ -122,10 +124,12 @@ function renderResponse() {
   }
   select.value = m.template; select.disabled = !m.topic || m.sending;
   $$('input[name="fallback-topic"]').forEach(el => { el.checked = el.value === m.topic; el.disabled = m.sending; });
-  $('structured-answer').textContent = m.device === 'ready' ? i18n.t('structuredChooseTopic') : (m.draft || i18n.t('structuredChooseBoth'));
-  $('flow-one-title').textContent = m.device === 'ready' ? i18n.t('flowTyped') : i18n.t('flowChosen');
-  $('flow-two-title').textContent = m.device === 'ready' ? i18n.t('flowRewritten') : i18n.t('flowStructured');
-  $('flow-two-note').textContent = m.device === 'ready' ? i18n.t('flowOnDevice') : i18n.t('flowNoAi');
+  if (m.device === 'ready') i18n.paintText($('structured-answer'), 'structuredChooseTopic');
+  else if (m.draft) i18n.paintFree($('structured-answer'), m.draft);
+  else i18n.paintText($('structured-answer'), 'structuredChooseBoth');
+  i18n.paintText($('flow-one-title'), m.device === 'ready' ? 'flowTyped' : 'flowChosen');
+  i18n.paintText($('flow-two-title'), m.device === 'ready' ? 'flowRewritten' : 'flowStructured');
+  i18n.paintText($('flow-two-note'), m.device === 'ready' ? 'flowOnDevice' : 'flowNoAi');
   if (m.sent) {
     $('sent-json').textContent = JSON.stringify(m.sent, null, 2);
     $('receipt-source').textContent = m.sentSource ? `${i18n.sourceLabelI18n(m.sentSource)} · ${i18n.t('approvedVersion')}` : `${i18n.t('headerStructured')} · ${i18n.t('flowNoAi')}`;
@@ -141,7 +145,10 @@ async function start() {
   i18n.onLocaleChange(() => {
     refreshChrome();
     refreshExampleOptions();
-    if (checkin && !checkin.unavailable) $('current-question').textContent = checkin.id === 'check-in-001' ? i18n.t('demoCheckinQuestion') : checkin.question;
+    if (checkin && !checkin.unavailable) {
+      if (checkin.id === 'check-in-001') i18n.paintText($('current-question'), 'demoCheckinQuestion');
+      else i18n.paintFree($('current-question'), checkin.question);
+    }
     renderResponse();
   });
   try {
@@ -152,12 +159,14 @@ async function start() {
     const id = questionId(new URLSearchParams(location.search).get('checkin') || 'check-in-001');
     await services.respondent();
     try { checkin = await services.checkin(id); }
-    catch { checkin = { id, unavailable: true }; $('current-question').textContent = i18n.t('questionUnavailable'); $('response-form').hidden = true; tell(i18n.t('tellCheckinUnavailable')); }
+    catch { checkin = { id, unavailable: true }; i18n.paintText($('current-question'), 'questionUnavailable'); $('response-form').hidden = true; tell(i18n.t('tellCheckinUnavailable')); }
     function newResponse() {
       if (checkin.unavailable) return;
       respondent?.invalidate();
       respondent = new Respondent({ infer: services.infer, send: services.submit, question_id: checkin.id, responseId: services.responseId(), onChange: renderResponse });
-      $('current-question').textContent = checkin.id === 'check-in-001' ? i18n.t('demoCheckinQuestion') : checkin.question; renderResponse();
+      if (checkin.id === 'check-in-001') i18n.paintText($('current-question'), 'demoCheckinQuestion');
+      else i18n.paintFree($('current-question'), checkin.question);
+      renderResponse();
     }
     newResponse();
     refreshToolbarAuth();
@@ -170,6 +179,7 @@ async function start() {
     $('regenerate').addEventListener('click', () => respondent?.rewrite());
     $('approve').addEventListener('change', e => respondent?.approve(e.target.checked));
     $('keep-risks').addEventListener('change', e => respondent?.acceptRisks(e.target.checked));
+    $('confirm-advisory').addEventListener('change', e => respondent?.acceptAdvisory(e.target.checked));
     $('send-response').addEventListener('click', async () => { const payload = await respondent?.submit(); if(payload) { $('receipt-title').focus(); tell(config.demo ? i18n.t('tellDemoSaved') : i18n.t('tellApprovedAccepted')); } });
     $('structured-mode').addEventListener('click', () => respondent?.structured());
     $$('input[name="fallback-topic"]').forEach(el => el.addEventListener('change', () => { if(respondent?.phase==='preparing') respondent.structured('preparing'); respondent?.setTemplate(el.value); }));
@@ -177,8 +187,7 @@ async function start() {
     $('next-respondent').addEventListener('click', async () => { await services.nextDemoRespondent(); newResponse(); });
     $('receipt-admin').addEventListener('click', () => openAdmin());
   } catch {
-    $('mode-banner').dataset.i18n = 'modeBannerStartFail';
-    $('mode-banner').textContent = i18n.t('modeBannerStartFail');
+    i18n.paintText($('mode-banner'), 'modeBannerStartFail');
     tell(i18n.t('tellConfigFail'));
     $('response-form').hidden = true; $('admin-login').disabled = true; $('structured-mode').disabled = true;
   }

@@ -1,4 +1,5 @@
 export const JA_MESSAGES = {
+    docTitle: 'Unsigned — 非公開の週次チェックイン',
     skipToApp: 'アプリ本体へスキップ',
     modeBannerLoading: '設定を読み込み中…',
     modeBannerDemo: 'デモモード — クラウドの処理はシミュレートされます',
@@ -18,7 +19,7 @@ export const JA_MESSAGES = {
     tabThemes: 'テーマ',
     tabQuestions: '質問',
     tabSettings: '設定',
-    eyebrowClarity: '毎週、少しずつ共有',
+    eyebrowClarity: '毎週少しずつ共有',
     checkInTitle: '今週のチェックイン',
     questionCount: '質問 1 / 1',
     fieldYourWords: 'あなたの言葉 · 非公開',
@@ -41,6 +42,7 @@ export const JA_MESSAGES = {
     riskSectionOriginal: '個人を特定しうる詳細',
     riskSectionDraft: 'この下書きに残っている詳細',
     keepRisksLabel: 'この版に元の語句や固定の言い換えを明示的に残すことを選びます。',
+    confirmAdvisoryLabel: '上の端末 AI メモを確認しました。',
     fallbackPill: '非公開の代替 · AI なし',
     fallbackTitleUnavailable: 'この端末では非公開に書き直せません',
     fallbackTitlePreparing: '端末のモデルを準備中',

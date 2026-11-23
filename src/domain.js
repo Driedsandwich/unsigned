@@ -82,6 +82,63 @@ const WEEKDAYS = [
   ['Monday', 'Mon'], ['Tuesday', 'Tue'], ['Wednesday', 'Wed'], ['Thursday', 'Thu'], ['Friday', 'Fri'], ['Saturday', 'Sat'], ['Sunday', 'Sun'],
   ['月曜日', '月曜'], ['火曜日', '火曜'], ['水曜日', '水曜'], ['木曜日', '木曜'], ['金曜日', '金曜'], ['土曜日', '土曜'], ['日曜日', '日曜']
 ];
+const SOLE_MARKERS_JA = Object.freeze(['一人で', '一人だけ', '唯一', 'ただ一人', '単独で', '自分だけ']);
+const SOLE_MARKERS_EN = Object.freeze([
+  ['\\bonly\\b', 'only'], ['\\bsole\\b', 'sole'], ['\\bsingle\\b', 'single'],
+  ['\\bthe one who\\b', 'the one who'], ['\\bby myself\\b', 'by myself'], ['\\bon my own\\b', 'on my own']
+]);
+const SOLE_ROLE_WORDS = Object.freeze([
+  '担当', 'リード', 'リリース', 'テスター', '検証', '品質', 'デザイナー', 'アナリスト',
+  'release', 'lead', 'tester', 'qa', 'designer', 'analyst', 'testing', 'manager', 'coordinator'
+]);
+
+function soleMarkerIn(text) {
+  for (const marker of SOLE_MARKERS_JA) if (text.includes(marker)) return marker;
+  for (const [pattern] of SOLE_MARKERS_EN) if (new RegExp(pattern, 'i').test(text)) return true;
+  return null;
+}
+
+function roleTermsForSoleRisk(risk) {
+  const terms = new Set();
+  for (const word of SOLE_ROLE_WORDS) {
+    if (/[\u3040-\u30FF\u4E00-\u9FFF]/.test(word) ? risk.text.includes(word) : new RegExp(`\\b${word}\\b`, 'i').test(risk.text)) terms.add(word);
+  }
+  if (risk.category === 'uncommon role') {
+    for (const aliases of ROLE_ALIASES) {
+      if (aliases.some(term => (/[\u3040-\u30FF\u4E00-\u9FFF]/.test(term) ? risk.text.includes(term) : new RegExp(`\\b${term}\\b`, 'i').test(risk.text)))) aliases.forEach(term => terms.add(term));
+    }
+  }
+  return [...terms];
+}
+
+function termInDraft(draft, term) {
+  if (/[\u3040-\u30FF\u4E00-\u9FFF]/.test(term)) return draft.includes(term);
+  return new RegExp(`(?<![\\p{L}\\p{N}])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'iu').test(draft);
+}
+
+const SOLE_IN_DRAFT = new RegExp([...SOLE_MARKERS_JA.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), ...SOLE_MARKERS_EN.map(([p]) => p)].join('|'), 'giu');
+
+function soleRoleResiduals(draft, risks) {
+  const found = [];
+  for (const [sourceRiskIndex, risk] of risks.entries()) {
+    if (risk.category !== 'uncommon role' || !soleMarkerIn(risk.text)) continue;
+    const soleMatches = [...draft.matchAll(SOLE_IN_DRAFT)];
+    if (!soleMatches.length) continue;
+    const roles = roleTermsForSoleRisk(risk);
+    if (!roles.some(term => termInDraft(draft, term))) continue;
+    for (const match of soleMatches) found.push({ text: match[0], category: 'uncommon role', sourceRiskIndex });
+    for (const term of roles) {
+      if (!termInDraft(draft, term)) continue;
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = /[\u3040-\u30FF\u4E00-\u9FFF]/.test(term)
+        ? new RegExp(escaped, 'giu')
+        : new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
+      for (const match of draft.matchAll(pattern)) found.push({ text: match[0], category: 'uncommon role', sourceRiskIndex });
+    }
+  }
+  return found;
+}
+
 export function residualRisks(draft, risks) {
   const found = [];
   for (const [sourceRiskIndex, risk] of risks.entries()) {
@@ -107,7 +164,7 @@ export function residualRisks(draft, risks) {
       for (const match of draft.matchAll(pattern)) found.push({ text: match[0], category: risk.category, sourceRiskIndex });
     }
   }
-  return mergeRisks(found);
+  return mergeRisks(found, soleRoleResiduals(draft, risks));
 }
 export function mergeRisks(...lists) {
   return [...new Map(lists.flat().map(r => [r.text, r])).values()];

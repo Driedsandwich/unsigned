@@ -41,7 +41,8 @@ test('Semantic review advises on an unfamiliar short paraphrase without gating a
   const draft='Those who validate the product learn last.';
   assert.deepEqual(residualRisks(draft,risks),[]);
   const m=respondent(pipeline({draft,review:[{text:'validate the product',sourceRiskIndex:2}]}).infer);
-  await ready(m);assert.equal(m.canApprove(),true);assert.deepEqual(m.draftRisks,[]);assert.equal(m.aiNotes[0].text,'validate the product');
+  await ready(m);assert.equal(m.canApprove(),false);assert.deepEqual(m.draftRisks,[]);assert.equal(m.aiNotes[0].text,'validate the product');
+  m.acceptAdvisory(true);assert.equal(m.canApprove(),true);
 });
 test('Explicit retention unlocks only this version; editing immediately reruns deterministic review',async()=>{
   const m=respondent(pipeline().infer);await ready(m);m.acceptRisks(true);assert.equal(m.canApprove(),true);
@@ -74,6 +75,7 @@ test('Malformed semantic review preserves draft and deterministic retention with
 test('Absent semantic phrases yield an advisory note without a highlight or structured fallback',async()=>{
   const m=respondent(pipeline({review:[{text:'invented paraphrase absent from draft',sourceRiskIndex:2}]}).infer);
   await ready(m);assert.equal(m.device,'ready');assert.equal(m.canApprove(),false);assert.equal(m.raw,raw);assert.equal(m.aiNotes[0].text,'');assert.deepEqual(m.aiNotes[0].spans,[]);
+  m.acceptAdvisory(true);assert.equal(m.canApprove(),false);
 });
 test('Private review tokens cannot enter either cloud-capable feature',async()=>{
   const infer=createInference({modes,modelFactory:()=>assert.fail('No model allowed')});

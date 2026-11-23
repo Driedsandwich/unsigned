@@ -10,12 +10,13 @@ export class Respondent {
     this.device = 'ready'; this.phase = 'empty'; this.risks = []; this.rewriteResult = null; this.riskResult = null;
     this.draftRisks = []; this.reviewResult = null; this.keepRisks = false;
     this.aiNotes = []; this.reviewPending = false; this.reviewWarning = ''; this.reviewRun = 0;
+    this.confirmAdvisory = false;
     this.sent = null; this.sentSource = null; this.sending = false; this.error = ''; this.topic = ''; this.template = ''; this.prepared = false;
   }
   emit() { this.onChange(this); }
-  clearReview() { this.reviewRun++; this.aiNotes = []; this.reviewPending = false; this.reviewWarning = ''; this.reviewResult = null; }
+  clearReview() { this.reviewRun++; this.aiNotes = []; this.reviewPending = false; this.reviewWarning = ''; this.reviewResult = null; this.confirmAdvisory = false; }
   call(feature, token, options) { return privateCall(this.infer, feature, token, options, this.timeoutMs); }
-  invalidate() { clearTimeout(this.timer); this.run++; this.approved = false; this.keepRisks = false; }
+  invalidate() { clearTimeout(this.timer); this.run++; this.approved = false; this.keepRisks = false; this.confirmAdvisory = false; }
   structured(status = 'unavailable') {
     if (this.sending || this.sent) return;
     this.invalidate(); this.clearReview(); this.version++; this.device = status; this.raw = ''; this.draft = '';
@@ -87,6 +88,14 @@ export class Respondent {
     this.keepRisks = value === true && this.phase === 'ready' && this.draftRisks.length > 0;
     this.approved = false; this.emit();
   }
+  advisoryIndexes() {
+    return [...new Set(this.aiNotes.map(note => note.sourceRiskIndex).filter(index => Number.isInteger(index) && index >= 0 && index < this.risks.length))];
+  }
+  needsAdvisoryConfirm() { return this.advisoryIndexes().length > 0; }
+  acceptAdvisory(value) {
+    this.confirmAdvisory = value === true && this.phase === 'ready' && this.needsAdvisoryConfirm();
+    this.approved = false; this.emit();
+  }
   setTemplate(topic, index = '') {
     if (this.device === 'ready' || this.sent || this.sending) return;
     this.invalidate(); this.version++; this.topic = topic; this.template = index;
@@ -96,7 +105,10 @@ export class Respondent {
     this.draftVersion = this.draft ? this.version : -1; this.emit();
   }
   path() { return respondentPath(this.phase === 'preparing' ? 'preparing' : this.device); }
-  canApprove() { return !this.sent && !this.sending && !!this.draft.trim() && this.draftVersion === this.version && ['ready', 'structured'].includes(this.phase) && (!this.draftRisks.length || this.keepRisks); }
+  canApprove() {
+    return !this.sent && !this.sending && !!this.draft.trim() && this.draftVersion === this.version && ['ready', 'structured'].includes(this.phase)
+      && (!this.draftRisks.length || this.keepRisks) && (!this.needsAdvisoryConfirm() || this.confirmAdvisory);
+  }
   approve(value) { this.approved = value === true && this.canApprove(); this.emit(); }
   async submit() {
     if (!this.canApprove() || !this.approved) return null;

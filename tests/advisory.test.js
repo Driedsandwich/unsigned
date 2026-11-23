@@ -26,12 +26,12 @@ async function ready(m) { m.setRaw(raw); await m.rewrite(); }
 test('Reported Chrome 158 draft remains approvable despite linked sentence claims, with no sentence highlights', async () => {
   const { m, sent, calls } = setup({ review: sentences.map(text => ({ text, sourceRiskIndex: 2 })) });
   await ready(m);
-  assert.deepEqual(m.draftRisks, []); assert.equal(m.keepRisks, false); assert.equal(m.canApprove(), true);
+  assert.deepEqual(m.draftRisks, []); assert.equal(m.keepRisks, false); assert.equal(m.canApprove(), false);
   assert.equal(m.aiNotes.length, 2);
   for (const note of m.aiNotes) { assert.equal(note.sourceRiskIndex, 2); assert.equal(note.text, ''); assert.deepEqual(note.spans, []); }
   assert.match(calls[2].prompt, /1 to 4 words/);
   assert.ok(calls.every(call => call.mode === modes.ONLY_ON_DEVICE));
-  m.approve(true); await m.submit();
+  m.acceptAdvisory(true); m.approve(true); await m.submit();
   assert.deepEqual(sent, [{ question_id: 'q', approved_rewrite: draft }]);
   assert.deepEqual(m.aiNotes, []);
 });

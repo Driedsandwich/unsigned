@@ -1,7 +1,8 @@
 import markup from './admin.html?raw';
 import { adminInput, approvedInput } from './inference.js';
 import { publicThemes } from './domain.js';
-import { applyStaticI18n, t, sourceLabelI18n } from './i18n.js';
+import { applyStaticI18n, t, sourceLabelI18n, paintText, paintFree, paintSource, getLocale } from './i18n.js';
+import { localizeStoredTheme } from './fixtures.js';
 const $ = id => document.getElementById(id);
 const $$ = selector => [...document.querySelectorAll(selector)];
 
@@ -15,13 +16,15 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
   }
   function updateAuth() {
     $('admin-login').hidden = admin; $('sign-out').hidden = !admin;
-    $('auth-status').textContent = admin ? (config.demo ? t('authDemoAdmin') : t('authAdmin')) : (config.demo ? t('authDemo') : t('authAnonymous'));
+    paintText($('auth-status'), admin ? (config.demo ? 'authDemoAdmin' : 'authAdmin') : (config.demo ? 'authDemo' : 'authAnonymous'));
     $('aggregate').disabled = !admin || aggregateBusy;
     $('generate-question').disabled = !admin || questionBusy;
     $('use-question').disabled = !admin || questionBusy || !questionResult || !$('question-draft').value.trim();
   }
   function renderThemes() {
-    const safe = publicThemes(themes); const map = $('theme-map'); map.replaceChildren(); map.dataset.count = String(safe.length);
+    const locale = getLocale();
+    const safe = publicThemes(themes).map(theme => config.demo ? localizeStoredTheme(theme, locale) : theme);
+    const map = $('theme-map'); map.replaceChildren(); map.dataset.count = String(safe.length);
     for (const tTheme of safe) {
       const li = document.createElement('li'); li.className = 'theme-island';
       const title = document.createElement('h2'); title.textContent = tTheme.title;
@@ -33,7 +36,7 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
       for (let i=1;i<=3;i++) { const span = document.createElement('span'); span.dataset.level = String(i); if(i<=level) span.className='active'; track.append(span); }
       li.append(title, summary, meta, track); map.append(li);
     }
-    $('theme-count').textContent = safe.length ? t('adminThemeCount', { count: safe.length }) : t('adminNoThemes');
+    safe.length ? paintText($('theme-count'), 'adminThemeCount', { count: safe.length }) : paintText($('theme-count'), 'adminNoThemes');
   }
   async function login() {
     $('admin-login').disabled = true;
@@ -47,24 +50,25 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
     try {
       const { rows, participants } = await services.approved(checkin.id);
       if (!admin || epoch !== adminEpoch) return;
-      if (participants.length < 3) { tell(t('tellNeedThree')); return; }
-      const result = await services.infer('groupThemes', approvedInput(rows, participants));
+      const markers = config.demo ? participants.filter(p => !String(p.id).startsWith('fixture-person-')) : participants;
+      if (markers.length < 3) { tell(t('tellNeedThree')); return; }
+      const result = await services.infer('groupThemes', approvedInput(rows, markers));
       if (!admin || epoch !== adminEpoch) return;
       const saved = await services.saveThemes(checkin.id, result.value);
       if (!admin || epoch !== adminEpoch) return;
-      themes = saved; renderThemes(); $('aggregate-source').textContent = sourceLabelI18n(result); tell(t('tellThemesUpdated'));
+      themes = saved; renderThemes(); paintSource($('aggregate-source'), result); tell(t('tellThemesUpdated'));
     } catch { tell(t('tellGroupFail')); }
     finally { aggregateBusy = false; updateAuth(); }
   }
   async function draftQuestion() {
     if (!admin || questionBusy) return;
     const request = $('question-request').value.trim(); if (!request) { tell(t('tellEnterRequest')); return; }
-    questionBusy = true; questionResult = null; const epoch = adminEpoch; updateAuth(); $('execution-location').textContent = t('adminPreparingQuestion');
+    questionBusy = true; questionResult = null; const epoch = adminEpoch; updateAuth(); paintText($('execution-location'), 'adminPreparingQuestion');
     try {
       const result = await services.infer('draftQuestion', adminInput(request));
       if (!admin || epoch !== adminEpoch) return;
-      questionResult = result; $('question-draft').value = result.value; $('execution-location').textContent = sourceLabelI18n(result);
-    } catch { $('execution-location').textContent = t('adminDraftFailed'); tell(t('tellDraftFail')); }
+      questionResult = result; $('question-draft').value = result.value; paintSource($('execution-location'), result);
+    } catch { paintText($('execution-location'), 'adminDraftFailed'); tell(t('tellDraftFail')); }
     finally { questionBusy = false; updateAuth(); }
   }
   $('admin-view').addEventListener('admin-i18n', () => { renderThemes(); updateAuth(); });
@@ -75,7 +79,7 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
   $('sign-out').addEventListener('click', async () => {
     admin = false; adminEpoch++; themes=[]; questionResult=null; savedDraft=null; renderThemes();
     $('question-request').value=''; $('question-draft').value=''; $('saved-question').hidden=true; $('no-saved-question').hidden=false;
-    $('execution-location').textContent=t('sourceNotRun'); $('aggregate-source').textContent=t('sourceNotRun'); $('adoption-message').hidden=true;
+    paintText($('execution-location'), 'sourceNotRun'); paintText($('aggregate-source'), 'sourceNotRun'); $('adoption-message').hidden=true;
     updateAuth(); setView('respondent');
     try { await services.logoutAdmin(); tell(t('tellSignOut')); } catch { tell(t('tellSignOutFail')); }
   });
@@ -91,9 +95,9 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
       const draft = await services.saveDraft($('question-draft').value);
       if (!admin || epoch !== adminEpoch) return;
       savedDraft = draft;
-      $('saved-question').querySelector('.pill').textContent = t('adminDraftPill');
+      paintText($('saved-question').querySelector('.pill'), 'adminDraftPill');
       $('saved-question-text').textContent=savedDraft.question;
-      $('saved-question-location').textContent=t('adminSavedLocation', { source: sourceLabelI18n(questionResult) });
+      paintFree($('saved-question-location'), t('adminSavedLocation', { source: sourceLabelI18n(questionResult) }));
       $('saved-question').hidden=false; $('no-saved-question').hidden=true; $('adoption-message').hidden=false;
       $('open-checkin').hidden=false; $('checkin-link').hidden=true;
       tell(t('tellDraftSaved'));
@@ -103,7 +107,7 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
   $('open-checkin').addEventListener('click', async () => {
     if(!savedDraft || !admin) return; $('open-checkin').disabled=true;
     const epoch = adminEpoch, id = savedDraft.id;
-    try { await services.openDraft(id); if (!admin || epoch !== adminEpoch) return; const link=new URL(location.href); link.search=''; link.searchParams.set('checkin',id); $('checkin-link').href=link.href; $('checkin-link').textContent=link.href; $('checkin-link').hidden=false; $('saved-question').querySelector('.pill').textContent = config.demo ? t('adminDemoOpenPill') : t('adminOpenPill'); $('saved-question-location').textContent=config.demo?t('adminDemoOpenNote'):t('adminOpenNote'); $('open-checkin').hidden=true; }
+    try { await services.openDraft(id); if (!admin || epoch !== adminEpoch) return; const link=new URL(location.href); link.search=''; link.searchParams.set('checkin',id); $('checkin-link').href=link.href; paintFree($('checkin-link'), link.href); $('checkin-link').hidden=false; paintText($('saved-question').querySelector('.pill'), config.demo ? 'adminDemoOpenPill' : 'adminOpenPill'); paintText($('saved-question-location'), config.demo ? 'adminDemoOpenNote' : 'adminOpenNote'); $('open-checkin').hidden=true; }
     catch { tell(t('tellOpenFail')); }
     finally { $('open-checkin').disabled=false; }
   });

@@ -1,6 +1,6 @@
 import { POLICY, assertPolicy } from './policy.js';
 import { text, parseJSON, riskSpans, semanticNotes, thresholdThemes, participantRewrites } from './domain.js';
-import { DEMO_THEME_EVIDENCE } from './fixtures.js';
+import { demoThemesFromRewrites } from './fixtures.js';
 const values = new WeakMap();
 function input(kind, value) { const token = Object.freeze({ kind }); values.set(token, value); return token; }
 export const rawInput = (value, { risks = [], review = false } = {}) => {
@@ -62,7 +62,7 @@ function promptFor(feature, value) {
     default: throw new Error('Unknown feature');
   }
 }
-export function createInference({ modelFactory, modes, demo = false, availability = deviceAvailability, policy = POLICY }) {
+export function createInference({ modelFactory, modes, demo = false, availability = deviceAvailability, policy = POLICY, demoLocale = () => (typeof document !== 'undefined' && document.documentElement?.lang === 'ja' ? 'ja' : 'en') }) {
   assertPolicy(policy);
   const queue = serialQueue();
   return async (feature, token, { current = () => true, onStart = () => {}, onPartial } = {}) => {
@@ -71,7 +71,10 @@ export function createInference({ modelFactory, modes, demo = false, availabilit
     // Validate routing BEFORE constructing any model or prompt.
     if (token.kind === 'raw' && rule.mode !== 'ONLY_ON_DEVICE') throw new Error('Raw input cannot leave device');
     const value = values.get(token);
-    if (demo && feature === 'groupThemes') return { value: thresholdThemes(DEMO_THEME_EVIDENCE, value.length), source: null, simulated: true };
+    if (demo && feature === 'groupThemes') {
+      const themed = demoThemesFromRewrites(value, demoLocale());
+      return { value: thresholdThemes(themed, value.length), source: null, simulated: true };
+    }
     const job = async () => {
       if (!current()) return null;
       onStart();
