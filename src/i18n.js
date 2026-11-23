@@ -39,7 +39,8 @@ export function resolveLocale(search = globalThis.location?.search ?? '') {
     writeStorage(fromUrl);
     return fromUrl;
   }
-  return readStorage() ?? 'en';
+  const fallback = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_DEFAULT_LOCALE === 'ja') ? 'ja' : 'en';
+  return readStorage() ?? fallback;
 }
 
 export function getLocale() {
