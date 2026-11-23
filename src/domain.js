@@ -47,6 +47,73 @@ export function riskSpans(raw, candidate) {
     return [{ text: r.text, category: allowed.has(r.category) ? r.category : 'other identifying detail' }];
   });
 }
+const EN_NAME_SKIP = new Set([
+  'A', 'An', 'And', 'Are', 'As', 'At', 'Be', 'But', 'Could', 'Did', 'Do', 'Does', 'Each', 'Every',
+  'For', 'Friday', 'Had', 'Has', 'Have', 'He', 'Honestly', 'I', 'If', 'In', 'Is', 'It',
+  'Monday', 'More', 'My', 'Not', 'On', 'Or', 'Our', 'Please', 'Saturday', 'She', 'Should', 'So',
+  'Some', 'Sunday', 'The', 'They', 'Thursday', 'To', 'Tuesday', 'Was', 'We', 'Wednesday', 'Were',
+  'Would', 'Your'
+]);
+const JA_NAME = /(?:[\u30A0-\u30FF]|[\u4E00-\u9FFF]){1,6}(?:さん|くん|ちゃん|様|氏)/gu;
+const JA_DATE = /\d{1,2}月\d{1,2}日|\d{1,2}\/\d{1,2}/gu;
+const JA_WEEKDAY_PAREN = /\([月火水木金土日]\)/gu;
+const JA_SOLE_SOURCE = /(?:唯一の|一人だけの|ただ一人の|たった一人の|自分だけが|唯一|一人だけ|ただ一人|たった一人|自分だけ)(?:[のがとして、,\s]*)(?:[\u30A0-\u30FF\u4E00-\u9FFFA-Za-z]+)*(?:担当|リード|リーダー|QA|テスター|検証|リリース|デザイナー|エンジニア|アナリスト|品質)[\u30A0-\u30FF\u4E00-\u9FFFA-Za-z]*/gu;
+const EN_SOLE_SOURCE = /\b(?:only|sole|single)\b(?:\s+[\w.'-]+){0,3}/giu;
+const EN_NAME = /(?<![\p{L}\p{N}])([A-Z][a-z]{1,19})(?![\p{L}\p{N}])/gu;
+const EN_DATE = /\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/gu;
+
+function pushRisk(found, text, category) {
+  if (text && text.length <= 120) found.push({ text, category });
+}
+
+function weekdayHits(raw) {
+  const hits = [];
+  const terms = [...new Set(WEEKDAYS.flatMap(([day, short]) => [day, short].filter(Boolean)))];
+  terms.sort((a, b) => b.length - a.length);
+  const seenStarts = new Set();
+  for (const day of terms) {
+    let from = 0;
+    while ((from = raw.indexOf(day, from)) !== -1) {
+      if (!seenStarts.has(from)) {
+        seenStarts.add(from);
+        hits.push({ text: day, category: 'weekday' });
+      }
+      from += 1;
+    }
+  }
+  for (const match of raw.matchAll(JA_WEEKDAY_PAREN)) pushRisk(hits, match[0], 'weekday');
+  return hits;
+}
+
+function englishSoleHits(raw) {
+  const hits = [];
+  for (const match of raw.matchAll(EN_SOLE_SOURCE)) {
+    const chunk = match[0].trim();
+    if (SOLE_ROLE_WORDS.some(w => !/[\u3040-\u30FF\u4E00-\u9FFF]/.test(w) && new RegExp(`\\b${w}\\b`, 'i').test(chunk))) pushRisk(hits, chunk, 'uncommon role');
+  }
+  return hits;
+}
+
+function keepLongestNameHits(matches) {
+  const longest = matches.filter(hit => !matches.some(other => other !== hit && other.text.includes(hit.text)));
+  return mergeRisks(longest);
+}
+
+// Supplements on-device AI identifyRisks output; each hit must be an exact substring of raw.
+export function ruleBasedSourceRisks(raw) {
+  const found = [];
+  const names = [...raw.matchAll(JA_NAME)].map(match => ({ text: match[0], category: 'name' }));
+  for (const match of raw.matchAll(EN_NAME)) {
+    if (!EN_NAME_SKIP.has(match[1])) names.push({ text: match[1], category: 'name' });
+  }
+  for (const hit of keepLongestNameHits(names)) pushRisk(found, hit.text, hit.category);
+  for (const hit of weekdayHits(raw)) pushRisk(found, hit.text, hit.category);
+  for (const match of raw.matchAll(JA_DATE)) pushRisk(found, match[0], 'date');
+  for (const match of raw.matchAll(EN_DATE)) pushRisk(found, match[0], 'date');
+  for (const match of raw.matchAll(JA_SOLE_SOURCE)) pushRisk(found, match[0], 'uncommon role');
+  for (const hit of englishSoleHits(raw)) pushRisk(found, hit.text, hit.category);
+  return mergeRisks(found).slice(0, 30);
+}
 // Semantic claims are advisory only. Invalid/long spans can explain a note but
 // never become sentence highlights or deterministic approval requirements.
 export function semanticNotes(draft, candidate, originalRisks) {
@@ -82,7 +149,10 @@ const WEEKDAYS = [
   ['Monday', 'Mon'], ['Tuesday', 'Tue'], ['Wednesday', 'Wed'], ['Thursday', 'Thu'], ['Friday', 'Fri'], ['Saturday', 'Sat'], ['Sunday', 'Sun'],
   ['月曜日', '月曜'], ['火曜日', '火曜'], ['水曜日', '水曜'], ['木曜日', '木曜'], ['金曜日', '金曜'], ['土曜日', '土曜'], ['日曜日', '日曜']
 ];
-const SOLE_MARKERS_JA = Object.freeze(['一人で', '一人だけ', '唯一', 'ただ一人', '単独で', '自分だけ']);
+const SOLE_MARKERS_JA = Object.freeze([
+  '一人で', '一人だけ', '一人だけの', '唯一', '唯一の', 'ただ一人', 'ただ一人の',
+  'たった一人', 'たった一人の', '単独で', '自分だけ', '自分だけが'
+]);
 const SOLE_MARKERS_EN = Object.freeze([
   ['\\bonly\\b', 'only'], ['\\bsole\\b', 'sole'], ['\\bsingle\\b', 'single'],
   ['\\bthe one who\\b', 'the one who'], ['\\bby myself\\b', 'by myself'], ['\\bon my own\\b', 'on my own']
@@ -168,6 +238,13 @@ export function residualRisks(draft, risks) {
 }
 export function mergeRisks(...lists) {
   return [...new Map(lists.flat().map(r => [r.text, r])).values()];
+}
+export function dedupeNestedRisks(risks) {
+  return risks.filter(r => !risks.some(o => {
+    if (o === r || o.category !== r.category) return false;
+    if (r.category === 'uncommon role') return r.text.includes(o.text) && r.text.length > o.text.length;
+    return o.text.includes(r.text) && o.text.length > r.text.length;
+  }));
 }
 // Join only locally. A marker is one anonymous sign-in per question, linked to one response.
 export function participantRewrites(rows, participants) {

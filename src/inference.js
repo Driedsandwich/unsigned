@@ -1,5 +1,5 @@
 import { POLICY, assertPolicy } from './policy.js';
-import { text, parseJSON, riskSpans, semanticNotes, thresholdThemes, participantRewrites } from './domain.js';
+import { text, parseJSON, riskSpans, ruleBasedSourceRisks, semanticNotes, thresholdThemes, participantRewrites, mergeRisks, dedupeNestedRisks } from './domain.js';
 import { demoThemesFromRewrites } from './fixtures.js';
 const values = new WeakMap();
 function input(kind, value) { const token = Object.freeze({ kind }); values.set(token, value); return token; }
@@ -110,7 +110,9 @@ export function createInference({ modelFactory, modes, demo = false, availabilit
       if ((rule.mode === 'ONLY_ON_DEVICE' && source !== 'on_device') || (rule.mode === 'ONLY_IN_CLOUD' && source !== 'in_cloud')) throw new Error('Unexpected inference source');
       const output = result.response.text().trim();
       let parsed;
-      if (feature === 'identifyRisks') parsed = value.review ? semanticNotes(value.text, parseJSON(output), value.flagged) : riskSpans(value.text, parseJSON(output));
+      if (feature === 'identifyRisks') parsed = value.review
+        ? semanticNotes(value.text, parseJSON(output), value.flagged)
+        : dedupeNestedRisks(mergeRisks(riskSpans(value.text, parseJSON(output)), ruleBasedSourceRisks(value.text)));
       else if (feature === 'groupThemes') parsed = thresholdThemes(parseJSON(output), value.length);
       else parsed = text(output, feature === 'draftQuestion' ? 240 : 1200);
       return { value: parsed, source, simulated: false };
