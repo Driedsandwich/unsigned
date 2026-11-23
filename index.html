@@ -9,13 +9,20 @@
 
 </head>
 <body>
-  <a class="skip" href="#app-main">Skip to app</a>
-  <aside class="prototype-intro" id="mode-banner" role="status">Loading configuration…</aside>
-  <section class="prototype-toolbar" aria-label="Workspace">
+  <a class="skip" href="#app-main" data-i18n="skipToApp">Skip to app</a>
+  <aside class="prototype-intro" id="mode-banner" role="status" data-i18n="modeBannerLoading">Loading configuration…</aside>
+  <aside class="prototype-intro" id="ja-intro" hidden>
+    <div class="intro-inner">
+      <span class="prototype-label">UNSIGNED / PROTOTYPE</span>
+      <p class="japanese" data-i18n="jaIntroHtml" data-i18n-html="true"></p>
+    </div>
+  </aside>
+  <section class="prototype-toolbar" data-i18n-aria="workspace">
     <div class="toolbar-inner">
-      <div class="segmented"><button type="button" data-view="respondent" aria-pressed="true">Respondent</button><button type="button" data-view="admin" aria-pressed="false">Admin</button></div>
-      <div class="auth-bar"><button id="admin-login" class="text-button">Sign in with Google</button><button id="sign-out" class="text-button" hidden>Sign out</button><span id="auth-status" class="control-label"></span></div>
-      <button id="structured-mode" class="text-button">Use a structured answer</button>
+      <div class="control-group"><span class="control-label" id="lang-label" data-i18n="langLabel">Language</span><div class="segmented" role="group" aria-labelledby="lang-label"><button type="button" data-locale="en" aria-pressed="true" data-i18n="langEn">EN</button><button type="button" data-locale="ja" aria-pressed="false" data-i18n="langJa">日本語</button></div></div>
+      <div class="segmented" role="group"><button type="button" data-view="respondent" aria-pressed="true" data-i18n="viewRespondent">Respondent</button><button type="button" data-view="admin" aria-pressed="false" data-i18n="viewAdmin">Admin</button></div>
+      <div class="auth-bar"><button id="admin-login" class="text-button" data-i18n="signInGoogle">Sign in with Google</button><button id="sign-out" class="text-button" hidden data-i18n="signOut">Sign out</button><span id="auth-status" class="control-label"></span></div>
+      <button id="structured-mode" class="text-button" data-i18n="useStructuredAnswer">Use a structured answer</button>
     </div>
   </section>
   <p id="app-message" class="app-message" role="status" aria-live="polite"></p>
@@ -24,92 +31,92 @@
       <main class="app" id="app-main" tabindex="-1">
         <header class="app-header">
           <span class="wordmark">Unsigned</span><span class="header-divider" aria-hidden="true"></span>
-          <nav class="admin-tabs" id="admin-tabs" role="tablist" aria-label="Admin sections" hidden>
-            <button type="button" role="tab" id="tab-themes" aria-controls="panel-themes" aria-selected="true" tabindex="0" data-tab="themes">Themes</button>
-            <button type="button" role="tab" id="tab-questions" aria-controls="panel-questions" aria-selected="false" tabindex="-1" data-tab="questions">Questions</button>
-            <button type="button" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1" data-tab="settings">Settings</button>
+          <nav class="admin-tabs" id="admin-tabs" role="tablist" data-i18n-aria="adminSections" hidden>
+            <button type="button" role="tab" id="tab-themes" aria-controls="panel-themes" aria-selected="true" tabindex="0" data-tab="themes" data-i18n="tabThemes">Themes</button>
+            <button type="button" role="tab" id="tab-questions" aria-controls="panel-questions" aria-selected="false" tabindex="-1" data-tab="questions" data-i18n="tabQuestions">Questions</button>
+            <button type="button" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1" data-tab="settings" data-i18n="tabSettings">Settings</button>
           </nav>
-          <span class="pill header-context" id="header-context"><span class="dot" aria-hidden="true"></span>AI · On device</span>
+          <span class="pill header-context" id="header-context"><span class="dot" aria-hidden="true"></span><span id="header-context-text" data-i18n="headerAiOnDevice">AI · On device</span></span>
         </header>
 
         <section id="respondent-view" aria-label="Respondent check-in">
           <div id="response-form">
             <div class="respondent-grid">
               <section class="response-editor" aria-label="Your response">
-                <p class="eyebrow"><span class="tiny-line" aria-hidden="true"></span>A little clarity, every week</p>
-                <h1>This week’s check-in</h1>
-                <p class="question-count">Question 1 of 1</p>
+                <p class="eyebrow"><span class="tiny-line" aria-hidden="true"></span><span data-i18n="eyebrowClarity">A little clarity, every week</span></p>
+                <h1 data-i18n="checkInTitle">This week’s check-in</h1>
+                <p class="question-count" data-i18n="questionCount">Question 1 of 1</p>
                 <p class="question" id="current-question">What would make handoffs easier?</p>
                 <div id="private-flow">
                   <div class="card private-card">
-                    <label class="field-title" for="raw-response">Your words · Private</label>
-                    <span class="privacy-caption" id="raw-privacy">Never leaves this device</span>
-                    <textarea id="raw-response" rows="4" maxlength="1200" placeholder="What would help your team? Start with your own words…" aria-describedby="raw-privacy raw-help" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-                    <div class="input-footer"><span id="raw-help">Only the version you approve can be sent.</span><span id="raw-count">0 / 1200</span></div>
+                    <label class="field-title" for="raw-response" data-i18n="fieldYourWords">Your words · Private</label>
+                    <span class="privacy-caption" id="raw-privacy" data-i18n="privacyNeverLeaves">Never leaves this device</span>
+                    <textarea id="raw-response" rows="4" maxlength="1200" data-i18n-placeholder="rawPlaceholder" placeholder="What would help your team? Start with your own words…" aria-describedby="raw-privacy raw-help" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                    <div class="input-footer"><span id="raw-help" data-i18n="rawHelp">Only the version you approve can be sent.</span><span id="raw-count">0 / 1200</span></div>
                   </div>
-                  <div class="example-row" id="examples"><span>Try a fictional example</span><select id="example-select" aria-label="Fictional example"><option value="handoffs">Handoffs</option><option value="focus">Focus time</option><option value="decisions">Decision context</option></select><button class="text-button" type="button" id="load-example">Insert example</button></div>
-                  <div class="ai-bridge" id="ai-bridge" aria-hidden="true"><span class="pill bridge-pill"><span class="dot"></span>On-device AI</span></div>
+                  <div class="example-row" id="examples"><span data-i18n="tryFictionalExample">Try a fictional example</span><select id="example-select" data-i18n-aria="exampleSelectLabel"><option value="handoffs" data-i18n="exampleHandoffs">Handoffs</option><option value="focus" data-i18n="exampleFocus">Focus time</option><option value="decisions" data-i18n="exampleDecisions">Decision context</option></select><button class="text-button" type="button" id="load-example" data-i18n="insertExample">Insert example</button></div>
+                  <div class="ai-bridge" id="ai-bridge" aria-hidden="true"><span class="pill bridge-pill"><span class="dot"></span><span data-i18n="onDeviceAi">On-device AI</span></span></div>
                   <section class="card draft-card" aria-labelledby="draft-title" id="draft-card">
-                    <div class="draft-heading"><h2 id="draft-title">Live neutral draft</h2><span class="status" id="draft-status">Waiting for your words</span></div>
-                    <label class="sr-only" for="neutral-draft">Neutral draft to review</label>
-                    <textarea id="neutral-draft" rows="3" maxlength="1200" readonly placeholder="Your neutral rewrite will appear here." aria-describedby="draft-note draft-version" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-                    <div class="draft-controls"><div class="draft-actions"><button class="text-button" id="edit-draft" type="button" disabled>Edit draft</button><button class="text-button" id="regenerate" type="button" disabled>Regenerate</button></div><span class="version" id="draft-version">Source v0 · No draft yet</span></div>
-                    <p class="draft-note" id="draft-note">Pause for one second to create a private rewrite.</p>
-                    <section class="risk-review" aria-label="Potential identifying details in your words"><strong>Potential identifying details</strong><p id="risk-source">Not run yet</p><p id="risk-marks"></p><p id="risk-note">Review names, dates and uncommon roles before approving.</p></section>
-                    <section class="risk-review" id="draft-risk-review" aria-label="Identifying details remaining in draft" hidden><strong>Details remaining in this draft</strong><p id="draft-risk-source">Not run yet</p><p id="draft-risk-marks"></p><p id="draft-risk-note"></p><p id="draft-ai-notes" role="status" hidden></p><label id="keep-risks-label" class="approve-label" hidden><input type="checkbox" id="keep-risks" aria-describedby="draft-risk-note"> I explicitly choose to keep the exact original terms or fixed aliases in this version.</label></section>
+                    <div class="draft-heading"><h2 id="draft-title" data-i18n="liveNeutralDraft">Live neutral draft</h2><span class="status" id="draft-status" data-i18n="statusEmpty">Waiting for your words</span></div>
+                    <label class="sr-only" for="neutral-draft" data-i18n="neutralDraftLabel">Neutral draft to review</label>
+                    <textarea id="neutral-draft" rows="3" maxlength="1200" readonly data-i18n-placeholder="neutralDraftPlaceholder" placeholder="Your neutral rewrite will appear here." aria-describedby="draft-note draft-version" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+                    <div class="draft-controls"><div class="draft-actions"><button class="text-button" id="edit-draft" type="button" disabled data-i18n="editDraft">Edit draft</button><button class="text-button" id="regenerate" type="button" disabled data-i18n="regenerate">Regenerate</button></div><span class="version" id="draft-version">Source v0 · No draft yet</span></div>
+                    <p class="draft-note" id="draft-note" data-i18n="draftNotePause">Pause for one second to create a private rewrite.</p>
+                    <section class="risk-review" aria-label="Potential identifying details in your words"><strong data-i18n="riskSectionOriginal">Potential identifying details</strong><p id="risk-source" data-i18n="sourceNotRun">Not run yet</p><p id="risk-marks"></p><p id="risk-note" data-i18n="riskNoteNotRun">Review names, dates and uncommon roles before approving.</p></section>
+                    <section class="risk-review" id="draft-risk-review" aria-label="Identifying details remaining in draft" hidden><strong data-i18n="riskSectionDraft">Details remaining in this draft</strong><p id="draft-risk-source" data-i18n="sourceNotRun">Not run yet</p><p id="draft-risk-marks"></p><p id="draft-risk-note"></p><p id="draft-ai-notes" role="status" hidden></p><label id="keep-risks-label" class="approve-label" hidden><input type="checkbox" id="keep-risks" aria-describedby="draft-risk-note"> <span data-i18n="keepRisksLabel">I explicitly choose to keep the exact original terms or fixed aliases in this version.</span></label></section>
                   </section>
                 </div>
                 <section class="card fallback-card" id="fallback-flow" aria-labelledby="fallback-title" hidden>
-                  <span class="pill">Private alternative · No AI</span>
-                  <h2 id="fallback-title">This device can't rewrite privately</h2>
-                  <p>Your words will not be sent to cloud AI. Choose a topic and a short template instead. No free-text response is collected here.</p>
-                  <fieldset><legend>1. What would help?</legend><div class="choice-grid">
-                    <label class="choice"><input type="radio" name="fallback-topic" value="handoffs">Clearer handoffs</label>
-                    <label class="choice"><input type="radio" name="fallback-topic" value="focus">Focus time</label>
-                    <label class="choice"><input type="radio" name="fallback-topic" value="decisions">Decision context</label>
+                  <span class="pill" data-i18n="fallbackPill">Private alternative · No AI</span>
+                  <h2 id="fallback-title" data-i18n="fallbackTitleUnavailable">This device can't rewrite privately</h2>
+                  <p data-i18n="fallbackBody">Your words will not be sent to cloud AI. Choose a topic and a short template instead. No free-text response is collected here.</p>
+                  <fieldset><legend data-i18n="fallbackLegend">1. What would help?</legend><div class="choice-grid">
+                    <label class="choice"><input type="radio" name="fallback-topic" value="handoffs"><span data-i18n="fallbackTopicHandoffs">Clearer handoffs</span></label>
+                    <label class="choice"><input type="radio" name="fallback-topic" value="focus"><span data-i18n="fallbackTopicFocus">Focus time</span></label>
+                    <label class="choice"><input type="radio" name="fallback-topic" value="decisions"><span data-i18n="fallbackTopicDecisions">Decision context</span></label>
                   </div></fieldset>
-                  <label class="template-label" for="fallback-template">2. Complete your short response</label>
-                  <select id="fallback-template" disabled><option value="">Choose a topic first</option></select>
-                  <div class="structured-preview"><span class="eyebrow">Your response to approve</span><p id="structured-answer">Choose a topic and template to preview your response.</p></div>
+                  <label class="template-label" for="fallback-template" data-i18n="fallbackTemplateLabel">2. Complete your short response</label>
+                  <select id="fallback-template" disabled><option value="" data-i18n="fallbackTemplatePlaceholder">Choose a topic first</option></select>
+                  <div class="structured-preview"><span class="eyebrow" data-i18n="structuredPreviewEyebrow">Your response to approve</span><p id="structured-answer" data-i18n="structuredChooseBoth">Choose a topic and template to preview your response.</p></div>
                 </section>
               </section>
               <aside class="timeline" aria-labelledby="timeline-title">
-                <h2 id="timeline-title">What leaves your device</h2>
+                <h2 id="timeline-title" data-i18n="timelineTitle">What leaves your device</h2>
                 <ol class="flow-list">
-                  <li><span class="step-number">1</span><div class="step-text"><strong id="flow-one-title">Typed here</strong><span id="flow-one-note">Private</span></div></li>
-                  <li><span class="step-number">2</span><div class="step-text"><strong id="flow-two-title">Rewritten here</strong><span id="flow-two-note">On device</span></div></li>
-                  <li><span class="step-number">3</span><div class="step-text"><strong id="flow-three-title">Approved rewrite only</strong><span>Sends</span></div></li>
+                  <li><span class="step-number">1</span><div class="step-text"><strong id="flow-one-title" data-i18n="flowTyped">Typed here</strong><span id="flow-one-note" data-i18n="flowOneNote">Private</span></div></li>
+                  <li><span class="step-number">2</span><div class="step-text"><strong id="flow-two-title" data-i18n="flowRewritten">Rewritten here</strong><span id="flow-two-note" data-i18n="flowOnDevice">On device</span></div></li>
+                  <li><span class="step-number">3</span><div class="step-text"><strong id="flow-three-title" data-i18n="flowThreeTitle">Approved rewrite only</strong><span id="flow-three-note" data-i18n="flowThreeNote">Sends</span></div></li>
                 </ol>
-                <div class="device-boundary">Device boundary</div>
-                <div class="cloud-receives"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 48h30a13 13 0 0 0 0-26 17 17 0 0 0-32-1 14 14 0 0 0 2 27Z"/></svg><strong>Cloud receives approved text</strong></div>
-                <p class="timeline-footnote">You stay in control of the words that leave.</p>
+                <div class="device-boundary" data-i18n="deviceBoundary">Device boundary</div>
+                <div class="cloud-receives"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 48h30a13 13 0 0 0 0-26 17 17 0 0 0-32-1 14 14 0 0 0 2 27Z"/></svg><strong data-i18n="cloudReceives">Cloud receives approved text</strong></div>
+                <p class="timeline-footnote" data-i18n="timelineFootnote">You stay in control of the words that leave.</p>
               </aside>
             </div>
             <div class="approval-bar">
-              <label class="approve-label"><input id="approve" type="checkbox" disabled aria-describedby="approval-help">I approve this version</label>
-              <button class="primary-button" id="send-response" type="button" disabled>Send approved response<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
-              <p class="approval-help" id="approval-help">Review a complete draft before approving. Cloud sees only the approved rewrite.</p>
+              <label class="approve-label"><input id="approve" type="checkbox" disabled aria-describedby="approval-help"><span data-i18n="approveLabel">I approve this version</span></label>
+              <button class="primary-button" id="send-response" type="button" disabled data-i18n="sendApproved">Send approved response<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+              <p class="approval-help" id="approval-help" data-i18n="approvalHelp">Review a complete draft before approving. Cloud sees only the approved rewrite.</p>
             </div>
           </div>
           <section class="receipt" id="receipt" aria-labelledby="receipt-title" hidden>
             <div class="receipt-symbol"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div>
-            <p class="eyebrow">Response complete</p>
-            <h1 id="receipt-title" tabindex="-1">Your approved words. Only those.</h1>
-            <p>Your approved response was accepted. Your original words were not included.</p>
-            <div class="card payload-card"><div class="payload-heading"><h2>What was sent</h2><span>Approved payload</span></div><p id="receipt-source" class="execution-location"></p><pre id="sent-json" aria-label="Approved response JSON"></pre><div class="receipt-facts"><span>No original text</span><span>No edit history</span><span>No person identifier</span></div></div>
-            <div class="receipt-actions"><button class="primary-button" id="receipt-admin" type="button">See themes in Admin<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="secondary-button" id="next-respondent" type="button">Next fictional respondent</button></div>
-            <p class="receipt-note">Only the approved text and question ID are sent. A server timestamp is added when stored.</p>
+            <p class="eyebrow" data-i18n="receiptEyebrow">Response complete</p>
+            <h1 id="receipt-title" tabindex="-1" data-i18n="receiptTitle">Your approved words. Only those.</h1>
+            <p data-i18n="receiptBody">Your approved response was accepted. Your original words were not included.</p>
+            <div class="card payload-card"><div class="payload-heading"><h2 data-i18n="whatWasSent">What was sent</h2><span data-i18n="approvedPayload">Approved payload</span></div><p id="receipt-source" class="execution-location"></p><pre id="sent-json" aria-label="Approved response JSON"></pre><div class="receipt-facts"><span data-i18n="receiptFactNoOriginal">No original text</span><span data-i18n="receiptFactNoHistory">No edit history</span><span data-i18n="receiptFactNoId">No person identifier</span></div></div>
+            <div class="receipt-actions"><button class="primary-button" id="receipt-admin" type="button" data-i18n="seeThemesAdmin">See themes in Admin<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="secondary-button" id="next-respondent" type="button" data-i18n="nextFictionalRespondent">Next fictional respondent</button></div>
+            <p class="receipt-note" data-i18n="receiptNote">Only the approved text and question ID are sent. A server timestamp is added when stored.</p>
           </section>
         </section>
 
         <section id="admin-view" class="admin-main" aria-label="Admin workspace" hidden>
         </section>
-        <footer class="app-footnote"><span>Private words. Shared understanding.</span><span id="footer-mode">Private by design</span></footer>
+        <footer class="app-footnote"><span data-i18n="footerTagline">Private words. Shared understanding.</span><span id="footer-mode" data-i18n="footerDefault">Private by design</span></footer>
       </main>
     </div>
   </div>
   <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
-  <noscript><p>Enable JavaScript to use Unsigned.</p></noscript>
+  <noscript><p data-i18n="noscript">Enable JavaScript to use Unsigned.</p></noscript>
 
   <script type="module" src="/src/main.js"></script>
 </body>

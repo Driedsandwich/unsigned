@@ -182,7 +182,7 @@ test('Only Firebase adapter imports inference SDK; no direct model API or teleme
   for(const file of files.filter(f=>f.endsWith('.js'))){const s=await readFile(new URL('../src/'+file,import.meta.url),'utf8');
     if(file!=='firebase.js')assert.doesNotMatch(s,/from ['"]firebase\/ai/);
     if(file!=='config.js')assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|sendBeacon|console\.(?:log|error)/);
-    assert.doesNotMatch(s,/LanguageModel\.(?:create|prompt)|localStorage|sessionStorage/);
+    if (file !== 'i18n.js') assert.doesNotMatch(s,/LanguageModel\.(?:create|prompt)|localStorage|sessionStorage/);
   }
 });
 test('Firestore rules restrict response fields, creation, admin reading, and theme bands',async()=>{

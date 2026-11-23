@@ -1,7 +1,7 @@
 import { rawInput } from './inference.js';
 import { submission, respondentPath, residualRisks } from './domain.js';
 import { privateCall, privateFailure, PRIVATE_CALL_TIMEOUT_MS } from './private-check.js';
-import { TEMPLATES } from './fixtures.js';
+import { TEMPLATES, TEMPLATES_JA } from './fixtures.js';
 export class Respondent {
   constructor({ infer, send, question_id, responseId, onChange = () => {}, delay = 1000, timeoutMs = PRIVATE_CALL_TIMEOUT_MS }) {
     Object.assign(this, { infer, send, question_id, responseId, onChange, delay, timeoutMs });
@@ -90,8 +90,9 @@ export class Respondent {
   setTemplate(topic, index = '') {
     if (this.device === 'ready' || this.sent || this.sending) return;
     this.invalidate(); this.version++; this.topic = topic; this.template = index;
-    const option = TEMPLATES[topic]?.options[index];
-    this.draft = option ? `${TEMPLATES[topic].title}: ${option}` : '';
+    const catalog = (typeof globalThis.document !== 'undefined' && globalThis.document.documentElement?.lang === 'ja') ? TEMPLATES_JA : TEMPLATES;
+    const option = catalog[topic]?.options[index];
+    this.draft = option ? `${catalog[topic].title}: ${option}` : '';
     this.draftVersion = this.draft ? this.version : -1; this.emit();
   }
   path() { return respondentPath(this.phase === 'preparing' ? 'preparing' : this.device); }

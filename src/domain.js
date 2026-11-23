@@ -73,10 +73,14 @@ export function literalSpans(value, term) {
 }
 // Only literal originals and this finite local alias table can gate approval.
 const ROLE_ALIASES = [
-  ['qa', 'quality assurance', 'quality analyst', 'tester', 'testers', 'testing', 'test engineer'],
-  ['release lead', 'release manager', 'release coordinator'],
-  ['designer', 'designers', 'design specialist'],
-  ['analyst', 'analysts', 'analysis specialist']
+  ['qa', 'quality assurance', 'quality analyst', 'tester', 'testers', 'testing', 'test engineer', '品質保証', 'テスター', '検証担当', '品質管理'],
+  ['release lead', 'release manager', 'release coordinator', 'リリース担当', 'リリースリード'],
+  ['designer', 'designers', 'design specialist', 'デザイナー'],
+  ['analyst', 'analysts', 'analysis specialist', 'アナリスト', '分析担当']
+];
+const WEEKDAYS = [
+  ['Monday', 'Mon'], ['Tuesday', 'Tue'], ['Wednesday', 'Wed'], ['Thursday', 'Thu'], ['Friday', 'Fri'], ['Saturday', 'Sat'], ['Sunday', 'Sun'],
+  ['月曜日', '月曜'], ['火曜日', '火曜'], ['水曜日', '水曜'], ['木曜日', '木曜'], ['金曜日', '金曜'], ['土曜日', '土曜'], ['日曜日', '日曜']
 ];
 export function residualRisks(draft, risks) {
   const found = [];
@@ -84,17 +88,22 @@ export function residualRisks(draft, risks) {
     const terms = new Set([risk.text]);
     if (risk.category === 'uncommon role') {
       for (const aliases of ROLE_ALIASES) {
-        if (aliases.some(term => new RegExp(`\\b${term}\\b`, 'i').test(risk.text))) aliases.forEach(term => terms.add(term));
+        if (aliases.some(term => term.match(/[\u3040-\u30FF\u4E00-\u9FFF]/) ? risk.text.includes(term) : new RegExp(`\\b${term}\\b`, 'i').test(risk.text))) aliases.forEach(term => terms.add(term));
       }
     }
     if (risk.category === 'weekday' || risk.category === 'date') {
-      for (const day of ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']) {
-        if (risk.text.toLowerCase().includes(day.toLowerCase())) { terms.add(day); terms.add(day.slice(0,3)); }
+      for (const [day, short] of WEEKDAYS) {
+        if (risk.text.toLowerCase().includes(day.toLowerCase()) || risk.text.includes(day)) {
+          terms.add(day);
+          if (short) terms.add(short);
+        }
       }
     }
     for (const term of terms) {
       const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
+      const pattern = /[\u3040-\u30FF\u4E00-\u9FFF]/.test(term)
+        ? new RegExp(escaped, 'giu')
+        : new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'giu');
       for (const match of draft.matchAll(pattern)) found.push({ text: match[0], category: risk.category, sourceRiskIndex });
     }
   }
