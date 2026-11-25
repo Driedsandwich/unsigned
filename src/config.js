@@ -12,8 +12,14 @@ export async function loadConfig() {
   if (!response.ok) throw new Error('Could not read configuration');
   const body = await response.text();
   if (/^\s*<!doctype html|^\s*<html/i.test(body)) return resolveConfig(undefined);
-  const configPath = '/firebase-config.js';
-  await import(/* @vite-ignore */ configPath);
+  // Load as a classic script: Vite's dev server refuses module imports of /public files.
+  await new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/firebase-config.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Could not read configuration'));
+    document.head.appendChild(script);
+  });
   if (!globalThis.UNSIGNED_CONFIG) throw new Error('Missing UNSIGNED_CONFIG in configuration file');
   return resolveConfig(globalThis.UNSIGNED_CONFIG);
 }
