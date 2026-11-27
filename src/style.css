@@ -151,11 +151,11 @@
     .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px }
     .page-heading p { color:var(--muted); margin-top:4px }
     .demo-tag { font-size:11px; line-height:18px; color:var(--muted); border:1px solid var(--line); border-radius:99px; padding:4px 10px; margin-top:8px; white-space:nowrap }
-    .privacy-banner { display:flex; gap:18px; align-items:center; padding:16px 20px; background:var(--pale); border:1px solid #D1E3DA; border-radius:12px; margin-bottom:16px }
-    .privacy-banner svg { width:30px; height:34px; color:var(--green) }
-    .privacy-banner-text { padding-left:18px; border-left:1px solid #9ABCB0 }
-    .privacy-banner strong { display:block; font-size:18px; line-height:26px; font-weight:700 }
-    .privacy-banner p { font-size:var(--label-size); line-height:var(--label-line); color:var(--muted) }
+    .boundary-banner { display:flex; gap:18px; align-items:center; padding:16px 20px; background:var(--pale); border:1px solid #D1E3DA; border-radius:12px; margin-bottom:16px }
+    .boundary-banner svg { width:30px; height:34px; color:var(--green) }
+    .boundary-banner-text { padding-left:18px; border-left:1px solid #9ABCB0 }
+    .boundary-banner strong { display:block; font-size:18px; line-height:26px; font-weight:700 }
+    .boundary-banner p { font-size:var(--label-size); line-height:var(--label-line); color:var(--muted) }
     .landscape { position:relative; border:1px solid var(--line); border-radius:12px; padding:28px 28px 16px; background:radial-gradient(ellipse at 46% 45%,#FFFFFF 0%,#F4F7F4 68%); margin-bottom:16px }
     .map-topline { display:flex; justify-content:space-between; gap:12px; font-size:11px; line-height:18px; color:var(--muted); margin-bottom:16px }
     .map-canvas { position:relative; min-height:310px; display:grid; grid-template-columns:1.1fr 1fr; grid-template-rows:1fr 1fr; gap:28px 80px; align-items:center; padding:8px 20px 20px }
@@ -288,11 +288,11 @@
       .page-heading { flex-direction:column; gap:8px; margin-bottom:16px }
       .page-heading p { font-size:14px; line-height:20px }
       .demo-tag { margin:0 }
-      .privacy-banner { gap:12px; padding:12px }
-      .privacy-banner svg { width:24px; height:28px }
-      .privacy-banner-text { padding-left:12px }
-      .privacy-banner strong { font-size:14px; line-height:20px }
-      .privacy-banner p { font-size:12px; line-height:18px; margin-top:4px }
+      .boundary-banner { gap:12px; padding:12px }
+      .boundary-banner svg { width:24px; height:28px }
+      .boundary-banner-text { padding-left:12px }
+      .boundary-banner strong { font-size:14px; line-height:20px }
+      .boundary-banner p { font-size:12px; line-height:18px; margin-top:4px }
       .landscape { padding:16px 12px; background:#EFF4F0 }
       .map-topline { flex-direction:column; gap:4px; margin-bottom:12px }
       .map-canvas,.map-canvas[data-count="2"] { display:flex; flex-direction:column; gap:12px; min-height:0; padding:0 }
