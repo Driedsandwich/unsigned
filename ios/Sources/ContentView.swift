@@ -118,9 +118,9 @@ struct ContentView: View {
           Text(m.risk.text).type(.label, .semibold)
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(mark, in: RoundedRectangle(cornerRadius: 4))
-          Text(m.risk.category).type(.label, color: Theme.muted)
+          Text(m.risk.category).font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.mutedDeep)
           Spacer(minLength: 4)
-          Text(m.origin).type(.caption, color: Theme.muted)
+          Text(m.origin).font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.mutedDeep)
         }
         .frame(minHeight: 28)
       }
@@ -198,7 +198,7 @@ struct ContentView: View {
     let steps: [(String, String)] = [
       ("Typed here", "Private"),
       ("Rewritten here", "On device"),
-      ("Approved rewrite only", "On screen only"),
+      ("Approved rewrite only", "Shown here, not uploaded"),
     ]
     return VStack(alignment: .leading, spacing: 12) {
       Text("What leaves your device").type(.section, .bold)

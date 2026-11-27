@@ -7,6 +7,7 @@ enum Theme {
   static let surface = Color.white
   static let ink = Color(hex: 0x172C2A)
   static let muted = Color(hex: 0x526560)
+  static let mutedDeep = Color(hex: 0x3A4F4A)   // darker secondary for small labels
   static let green = Color(hex: 0x236C60)
   static let pale = Color(hex: 0xE4F1EB)
   static let line = Color(hex: 0xCBD8D2)
@@ -16,7 +17,7 @@ enum Theme {
   static let checkBorder = Color(hex: 0x819B91)
   static let soft = Color(hex: 0xEDF2EE)
   // Web `mark` (the identifying-detail highlight) and the advisory note.
-  static let mark = Color(hex: 0xFBE7B7)
+  static let mark = Color(hex: 0xFCD34D)   // one step deeper amber than the web mark (#FBE7B7)
   static let warnBg = Color(hex: 0xFFF6E8)
   static let warnLine = Color(hex: 0xC9892B)
   static let warnInk = Color(hex: 0x5C3D0D)
