@@ -169,6 +169,10 @@ For real aggregate data, sign in to Admin → Settings → **Export safe themes 
 
 Raw answers, individual approved answers, evidence indexes, and below-threshold themes are excluded. Never place response exports or personal data in the MCP snapshot. `llms.txt` provides the short machine-readable contract. The same tool boundaries appear in Settings → For AI agents.
 
+## iOS respondent app
+
+`ios/` contains a SwiftUI respondent flow that rewrites on the phone with Apple Foundation Models via the Firebase AI Logic Apple SDK. Only the on-device model is used for the respondent's original text. Approved text is kept in memory and shown; there is no Firestore submission on iOS yet. Build steps and limits: [ios/README.md](ios/README.md).
+
 ## Verification and manual Chrome checklist
 
 `npm test` runs Node tests covering policy enforcement, private-token routing, SDK source checks, serial execution, streamed/stale results, source-first risk detection, risk-aware prompts, deterministic and semantic draft checks, approval/retention resets, Demo device preference and request-based fallback, participant joins and thresholds, Demo one-sign-in participation, two-field response projection, configuration handling, and MCP boundaries/stdio. It also checks both supplied Chrome rewrite regressions, nonblocking semantic errors/timeouts and sentence claims, literal advisory spans, stage-only diagnostics, the 60-second deadline with fake timers, late-result rejection, source-index validation, lazy service initialization/retry, shared inference queue, Demo flows, and the production chunk graph and size budget. Sandbox tests check configuration gating, tab-memory lifecycle, and the actual Firebase AI SDK's cloud request and App Check header with intercepted transport. DOM IDs and event references across the entry and deferred admin template are checked statically. AI responses are mocked and Chrome’s local model is not exercised by these tests.

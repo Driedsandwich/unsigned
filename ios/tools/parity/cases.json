@@ -1,0 +1,8 @@
+[
+  {"id":"sample","raw":"As the only release lead, I chased Maya on Tuesday for the notes. A shared checklist would help.",
+   "ai":[{"text":"Maya","category":"name"},{"text":"Tuesday","category":"weekday"},{"text":"release lead","category":"uncommon role"},{"text":"Bob","category":"name"},{"text":"checklist","category":"other identifying detail"}],
+   "drafts":["A shared checklist would help the team with handoffs.","Release manager chased updates.","Maya was chased on Tue by the only release lead","The sole tester checked the notes.","A shared checklist would help."]},
+  {"id":"dup-name","raw":"Maya asked Maya about Priya on March 3 and 3/14/2026.","ai":[{"text":"March 3","category":"date"}],"drafts":["Priya asked.","Nothing here."]},
+  {"id":"ja","raw":"唯一のリリース担当として、田中さんに3月5日(火)に確認した。月曜日と月曜。","ai":[{"text":"田中さん","category":"name"}],"drafts":["リリース担当が確認した。","チームで確認した。","田中さんが月曜に確認"]},
+  {"id":"lower-name","raw":"I told jordan about the sole QA role. Thanks, Jordan!","ai":[{"text":"Jordan","category":"name"},{"text":"jordan","category":"name"},{"text":"QA","category":"uncommon role"}],"drafts":["The QA tester helped.","testing was done by jordan"]}
+]

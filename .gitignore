@@ -11,3 +11,10 @@ public/*debug*.js
 mcp/private/
 *.log
 files/
+
+# iOS: real Firebase config stays local
+ios/Sources/GoogleService-Info.plist
+ios/build/
+ios/SourcePackages/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
