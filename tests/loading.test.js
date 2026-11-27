@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createServices } from '../src/services.js';
 import { createInference, rawInput, adminInput, approvedInput } from '../src/inference.js';
 import { Respondent } from '../src/respondent.js';
@@ -115,4 +116,21 @@ test('Production chunks stay below 500 kB and entry/Demo/AI graphs exclude defer
   const html = String(output.find(item => item.fileName === 'index.html').source);
   assert.doesNotMatch(html, /For AI agents|schedule_check_in|Theme landscape/);
   assert.match(admin.code, /For AI agents/);
+
+  const bundledPackages = new Set();
+  for (const chunk of chunks) {
+    for (const [id, { renderedLength }] of Object.entries(chunk.modules)) {
+      if (!renderedLength || !id.includes('/node_modules/')) continue;
+      const path = id.split('/node_modules/').at(-1).split('/');
+      bundledPackages.add(path.slice(0, path[0].startsWith('@') ? 2 : 1).join('/'));
+    }
+  }
+  const notices = String(output.find(item => item.fileName === 'THIRD_PARTY_NOTICES.txt').source);
+  const listed = [...notices.matchAll(/^Package: (.+)@[^\s]+\nLicense: [^\n]+/gm)].map(([, name]) => name);
+  assert.deepEqual(listed.sort(), [...bundledPackages].sort());
+  assert.equal(html.match(/href="\/THIRD_PARTY_NOTICES\.txt"/g)?.length, 1);
+  for (const path of ['../LICENSE', '../node_modules/idb/LICENSE', '../node_modules/re2js/LICENSE', '../node_modules/tslib/LICENSE.txt']) {
+    assert.ok(notices.includes(readFileSync(new URL(path, import.meta.url), 'utf8').trimEnd()), path);
+  }
+  assert.match(notices, /Copyright The Closure Library Authors/);
 });

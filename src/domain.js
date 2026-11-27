@@ -39,21 +39,51 @@ export function publicThemes(themes) {
     try { return [{ title: text(t.title, 100), summary: text(t.summary, 400), band: t.band }]; } catch { return []; }
   });
 }
-export function riskSpans(raw, candidate) {
+const COMMON_ENGLISH_WORDS = new Set(`
+  a about above across after again against all am an and any are around as at
+  be because been before being below between both but by can could did do does doing
+  down during each either else enough even every few for from further had has have
+  having he her here hers herself him himself his honestly how i if in into is it
+  its itself just like many may me might more most much must my myself near neither no
+  nor not now of off on once only onto or other our ours ourselves out over own
+  per please same she should since so some still such than that the their theirs them
+  themselves then there these they this those though through to together too under
+  until up us very via was we were what whatever when where whether which while who
+  whom whose why will with within without would yes you your yours yourself yourselves
+  one two three four five six seven eight nine ten
+  action answer answers better brief bullet bullets change changes clear comment comments
+  communication current daily day days detail details document documents easier easy end
+  example examples feedback first general good group handoff handoffs help helpful idea
+  ideas important issue issues large last later little long low main meeting meetings
+  member members memory message messages morning new next note notes old open ordinary
+  part parts people person plan plans point points problem problems project projects
+  question questions quick recent regular relevant reminder report reports request requests
+  response responses result results review reviews right routine rule rules schedule shared
+  short simple small status step steps suggestion suggestions support task tasks team teams
+  thing things time today tomorrow update updates usual week weekend weeks weekly work yesterday
+`.trim().split(/\s+/));
+const SPECIFIC_RISK_CATEGORIES = new Set(['name', 'date', 'weekday', 'uncommon role']);
+const EN_MONTH = /(?<![\p{L}\p{N}])(?:January|February|March|April|May|June|July|August|September|October|November|December)(?![\p{L}\p{N}])/u;
+
+export function riskSpans(raw, candidate, ruleRisks = ruleBasedSourceRisks(raw)) {
   if (!Array.isArray(candidate)) throw new Error('Invalid risk output');
-  const allowed = new Set(['name', 'date', 'weekday', 'uncommon role', 'other identifying detail']);
+  const ruleTexts = new Set(ruleRisks.map(r => r.text));
   return candidate.slice(0, 30).flatMap(r => {
     if (typeof r?.text !== 'string' || !r.text || !raw.includes(r.text)) return [];
-    return [{ text: r.text, category: allowed.has(r.category) ? r.category : 'other identifying detail' }];
+    const term = r.text;
+    const words = term.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+    const hasSpecificWord = words.some(word => !COMMON_ENGLISH_WORDS.has(word));
+    const specificCategory = SPECIFIC_RISK_CATEGORIES.has(r.category);
+    const nameCandidate = hasSpecificWord && /^\p{Lu}\p{L}*$/u.test(term) &&
+      literalSpans(raw, term).some(({ start }) => {
+        const before = raw.slice(0, start).replace(/[\p{Ps}\p{Pi}"' \t]+$/u, '');
+        return before.length > 0 && !/[.!?。！？\r\n]$/u.test(before);
+      });
+    if (!ruleTexts.has(term) && !/\p{N}/u.test(term) && !EN_MONTH.test(term) && !weekdayHits(term).length &&
+        !nameCandidate && !(specificCategory && hasSpecificWord)) return [];
+    return [{ text: term, category: specificCategory ? r.category : 'other identifying detail' }];
   });
 }
-const EN_NAME_SKIP = new Set([
-  'A', 'An', 'And', 'Are', 'As', 'At', 'Be', 'But', 'Could', 'Did', 'Do', 'Does', 'Each', 'Every',
-  'For', 'Friday', 'Had', 'Has', 'Have', 'He', 'Honestly', 'I', 'If', 'In', 'Is', 'It',
-  'Monday', 'More', 'My', 'Not', 'On', 'Or', 'Our', 'Please', 'Saturday', 'She', 'Should', 'So',
-  'Some', 'Sunday', 'The', 'They', 'Thursday', 'To', 'Tuesday', 'Was', 'We', 'Wednesday', 'Were',
-  'Would', 'Your'
-]);
 const JA_NAME = /(?:[\u30A0-\u30FF]|[\u4E00-\u9FFF]){1,6}(?:さん|くん|ちゃん|様|氏)/gu;
 const JA_DATE = /\d{1,2}月\d{1,2}日|\d{1,2}\/\d{1,2}/gu;
 const JA_WEEKDAY_PAREN = /\([月火水木金土日]\)/gu;
@@ -104,7 +134,9 @@ export function ruleBasedSourceRisks(raw) {
   const found = [];
   const names = [...raw.matchAll(JA_NAME)].map(match => ({ text: match[0], category: 'name' }));
   for (const match of raw.matchAll(EN_NAME)) {
-    if (!EN_NAME_SKIP.has(match[1])) names.push({ text: match[1], category: 'name' });
+    const word = match[1];
+    if ((!COMMON_ENGLISH_WORDS.has(word.toLowerCase()) || EN_MONTH.test(word)) &&
+        !WEEKDAYS.some(([day]) => day === word)) names.push({ text: word, category: 'name' });
   }
   for (const hit of keepLongestNameHits(names)) pushRisk(found, hit.text, hit.category);
   for (const hit of weekdayHits(raw)) pushRisk(found, hit.text, hit.category);

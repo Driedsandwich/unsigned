@@ -14,7 +14,7 @@ export function createServices(config, {
     infer: async (...args) => (await ai())(...args),
     responseId: () => crypto.randomUUID()
   };
-  for (const method of ['respondent', 'loginAdmin', 'logoutAdmin', 'checkin', 'nextDemoRespondent', 'submit', 'approved', 'themes', 'saveThemes', 'saveDraft', 'openDraft']) {
+  for (const method of ['respondent', 'restoreAdmin', 'loginAdmin', 'logoutAdmin', 'checkin', 'nextDemoRespondent', 'submit', 'approved', 'themes', 'saveThemes', 'saveDraft', 'openDraft']) {
     services[method] = async (...args) => (await store())[method](...args);
   }
   return services;

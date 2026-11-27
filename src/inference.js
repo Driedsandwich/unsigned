@@ -110,9 +110,14 @@ export function createInference({ modelFactory, modes, demo = false, availabilit
       if ((rule.mode === 'ONLY_ON_DEVICE' && source !== 'on_device') || (rule.mode === 'ONLY_IN_CLOUD' && source !== 'in_cloud')) throw new Error('Unexpected inference source');
       const output = result.response.text().trim();
       let parsed;
-      if (feature === 'identifyRisks') parsed = value.review
-        ? semanticNotes(value.text, parseJSON(output), value.flagged)
-        : dedupeNestedRisks(mergeRisks(riskSpans(value.text, parseJSON(output)), ruleBasedSourceRisks(value.text)));
+      if (feature === 'identifyRisks') {
+        const candidates = parseJSON(output);
+        if (value.review) parsed = semanticNotes(value.text, candidates, value.flagged);
+        else {
+          const ruleRisks = ruleBasedSourceRisks(value.text);
+          parsed = dedupeNestedRisks(mergeRisks(riskSpans(value.text, candidates, ruleRisks), ruleRisks));
+        }
+      }
       else if (feature === 'groupThemes') parsed = thresholdThemes(parseJSON(output), value.length);
       else parsed = text(output, feature === 'draftQuestion' ? 240 : 1200);
       return { value: parsed, source, simulated: false };

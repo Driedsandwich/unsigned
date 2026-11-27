@@ -77,6 +77,7 @@ export const JA_MESSAGES = {
     nextFictionalRespondent: '次の架空の回答者',
     receiptNote: '送信されるのは承認したテキストと質問 ID のみです。保存時にサーバーのタイムスタンプが付きます。',
     footerTagline: '言葉は非公開。理解は共有。',
+    footerNotices: 'サードパーティのライセンス',
     footerDemo: '実際の端末 AI · 架空のクラウド見本',
     footerLive: 'Firebase AI Logic · 承認した書き直しのみ',
     footerDefault: '設計上プライベート',

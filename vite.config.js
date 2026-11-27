@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
+import { thirdPartyNotices } from './build/third-party-notices.js';
 
 export default defineConfig({
+  plugins: [thirdPartyNotices()],
   build: {
     manifest: true,
     rollupOptions: {

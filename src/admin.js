@@ -38,9 +38,24 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
     }
     safe.length ? paintText($('theme-count'), 'adminThemeCount', { count: safe.length }) : paintText($('theme-count'), 'adminNoThemes');
   }
+  async function activate() {
+    admin = true;
+    const epoch = ++adminEpoch;
+    updateAuth();
+    setView('admin');
+    try {
+      const loaded = await services.themes(checkin.id);
+      if (!admin || epoch !== adminEpoch) return;
+      themes = loaded;
+      renderThemes();
+      tell(config.demo ? t('tellAdminDemo') : t('tellAdminReady'));
+    } catch {
+      if (admin && epoch === adminEpoch) tell(t('tellAdminLoadFail'));
+    }
+  }
   async function login() {
     $('admin-login').disabled = true;
-    try { await services.loginAdmin(); admin = true; const epoch = ++adminEpoch; updateAuth(); setView('admin'); const loaded = await services.themes(checkin.id); if (!admin || epoch !== adminEpoch) return; themes = loaded; renderThemes(); tell(config.demo ? t('tellAdminDemo') : t('tellAdminReady')); }
+    try { await services.loginAdmin(); await activate(); }
     catch { tell(t('tellAdminSignInFail')); }
     finally { $('admin-login').disabled = false; }
   }
@@ -120,7 +135,8 @@ export function createAdmin({ config, services, checkin, setView, tell, refreshA
   updateAuth(); renderThemes();
   refreshAdminI18n();
   return {
-    async open(signIn = false) {
+    async open({ signIn, restored }) {
+      if (restored) { void activate(); return; }
       setView('admin');
       if (!admin && (signIn || config.demo)) await login();
       else if (!admin) tell(t('tellSignInAdmin'));

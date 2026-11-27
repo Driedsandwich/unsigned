@@ -13,11 +13,11 @@ const adminWorkspace = deferred(async () => {
   const { createAdmin } = await import('./admin.js');
   return createAdmin({ config, services, checkin, setView, tell, refreshAdminI18n: () => i18n.applyStaticI18n($('admin-view')) });
 });
-async function openAdmin(signIn = false) {
+async function openAdmin(options = {}) {
   const request = ++viewRequest;
   try {
     const workspace = await adminWorkspace();
-    if (request === viewRequest) await workspace.open(signIn);
+    if (request === viewRequest) await workspace.open(options);
   } catch { tell(i18n.t('tellAdminLoadFail')); }
 }
 function setView(view) {
@@ -170,8 +170,13 @@ async function start() {
     }
     newResponse();
     refreshToolbarAuth();
+    if (!config.demo) {
+      try {
+        if (await services.restoreAdmin()) await openAdmin({ restored: true });
+      } catch { tell(i18n.t('tellAdminSignInFail')); }
+    }
     $$('[data-view]').forEach(el => el.addEventListener('click', () => { if (el.dataset.view === 'admin') void openAdmin(); else { viewRequest++; setView('respondent'); } }));
-    $('admin-login').addEventListener('click', () => openAdmin(true));
+    $('admin-login').addEventListener('click', () => openAdmin({ signIn: true }));
     $('raw-response').addEventListener('input', e => respondent?.setRaw(e.target.value));
     $('load-example').addEventListener('click', () => respondent?.setRaw(fixtures().examples[$('example-select').value]));
     $('edit-draft').addEventListener('click', () => { respondent?.beginEdit(); $('neutral-draft').focus(); });

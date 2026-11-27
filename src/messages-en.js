@@ -77,6 +77,7 @@ export const EN_MESSAGES = {
     nextFictionalRespondent: 'Next fictional respondent',
     receiptNote: 'Only the approved text and question ID are sent. A server timestamp is added when stored.',
     footerTagline: 'Private words. Shared understanding.',
+    footerNotices: 'Third-party notices',
     footerDemo: 'Real on-device AI · Fictional cloud fixtures',
     footerLive: 'Firebase AI Logic · Approved rewrites only',
     footerDefault: 'Private by design',

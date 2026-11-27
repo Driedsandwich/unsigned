@@ -7,11 +7,25 @@ export function createStore(config) {
   const app = createApp(config);
   const auth = getAuth(app), db = getFirestore(app);
   let adminAuth, adminDb;
+  function adminContext() {
+    if (!adminAuth) {
+      // Separate auth contexts keep respondent writes anonymous while an admin is signed in.
+      const adminApp = createApp(config, 'unsigned-admin');
+      const auth = getAuth(adminApp);
+      adminDb = getFirestore(adminApp);
+      adminAuth = auth;
+    }
+    return adminAuth;
+  }
+  async function isAdmin(user) {
+    if (!user) return false;
+    const token = await getIdTokenResult(user, true);
+    return user === adminAuth.currentUser && token.claims.unsigned_admin === true && token.signInProvider === 'google.com';
+  }
   async function requireAdmin() {
     const user = adminAuth?.currentUser;
     if (!user) throw new Error('Sign in as an administrator');
-    const token = await getIdTokenResult(user, true);
-    if (token.claims.unsigned_admin !== true || token.signInProvider !== 'google.com') throw new Error('This Google account is not an administrator');
+    if (!await isAdmin(user)) throw new Error('This Google account is not an administrator');
   }
   return {
     async respondent() {
@@ -19,14 +33,15 @@ export function createStore(config) {
       await auth.authStateReady();
       if (!auth.currentUser?.isAnonymous) await signInAnonymously(auth);
     },
+    async restoreAdmin() {
+      const auth = adminContext();
+      await auth.authStateReady();
+      return isAdmin(auth.currentUser);
+    },
     async loginAdmin() {
-      if (!adminAuth) {
-        // Separate auth contexts keep respondent writes anonymous while an admin is signed in.
-        const adminApp = createApp(config, 'unsigned-admin');
-        adminAuth = getAuth(adminApp); adminDb = getFirestore(adminApp);
-      }
-      await setPersistence(adminAuth, browserSessionPersistence);
-      await signInWithPopup(adminAuth, new GoogleAuthProvider());
+      const auth = adminContext();
+      await setPersistence(auth, browserSessionPersistence);
+      await signInWithPopup(auth, new GoogleAuthProvider());
       await requireAdmin();
     },
     async logoutAdmin() { if (adminAuth) await signOut(adminAuth); },
