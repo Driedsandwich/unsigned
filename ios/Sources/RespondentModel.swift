@@ -129,7 +129,7 @@ final class RespondentModel: ObservableObject {
   }
 
   // MARK: highlighted text
-  func highlighted(_ s: String, terms: [Risk], color: Color) -> AttributedString {
+  func highlighted(_ s: String, terms: [Risk], color: Color, foreground: Color = .black) -> AttributedString {
     var a = AttributedString(s)
     for t in terms {
       for r in Domain.literalSpans(s, t.text) {
@@ -137,7 +137,7 @@ final class RespondentModel: ObservableObject {
         let lo = a.index(a.startIndex, offsetByCharacters: s.distance(from: s.startIndex, to: sr.lowerBound))
         let hi = a.index(a.startIndex, offsetByCharacters: s.distance(from: s.startIndex, to: sr.upperBound))
         a[lo..<hi].backgroundColor = color
-        a[lo..<hi].foregroundColor = .black
+        a[lo..<hi].foregroundColor = foreground
       }
     }
     return a

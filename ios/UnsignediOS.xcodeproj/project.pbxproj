@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C7D9223BE4AD9583A6E9C70 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F4DB88AC96D2F1824FD54B /* Theme.swift */; };
 		142FB86D3E0DCF2FA17392CD /* CommonWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F41A540EE7767398316614B /* CommonWords.swift */; };
 		2770A886C00659311E07FEF4 /* Inference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 388339BC464F33C38B2069F7 /* Inference.swift */; };
+		281F7761A7031181BF10F7B5 /* DesignPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D323FFC0568F8F4699A997F /* DesignPreview.swift */; };
 		61E5DE2F3D9381A65805870D /* UnsignedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040498DE00EF2A25658FF454 /* UnsignedApp.swift */; };
 		8A39313FD9CB21117213F45A /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9BCA0F8789C83ACA7F2E3B46 /* GoogleService-Info.plist */; };
 		8CA48328A7DFE216050525C5 /* Autorun.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB20D09E5AAD12307C2EF174 /* Autorun.swift */; };
@@ -24,10 +26,12 @@
 		2F41A540EE7767398316614B /* CommonWords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommonWords.swift; sourceTree = "<group>"; };
 		388339BC464F33C38B2069F7 /* Inference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Inference.swift; sourceTree = "<group>"; };
 		466A11206EF2C72FD403C268 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		4D323FFC0568F8F4699A997F /* DesignPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignPreview.swift; sourceTree = "<group>"; };
 		926BDAFA40CA845BE36C8E99 /* Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain.swift; sourceTree = "<group>"; };
 		9BCA0F8789C83ACA7F2E3B46 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		B8AD6E07A31EACE02D2D0335 /* UnsignediOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = UnsignediOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C2E42CA8F26A14CAA0947AE0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C4F4DB88AC96D2F1824FD54B /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		CDE0762894526504AC0D49A0 /* RespondentModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RespondentModel.swift; sourceTree = "<group>"; };
 		FB20D09E5AAD12307C2EF174 /* Autorun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Autorun.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -51,11 +55,13 @@
 				FB20D09E5AAD12307C2EF174 /* Autorun.swift */,
 				2F41A540EE7767398316614B /* CommonWords.swift */,
 				466A11206EF2C72FD403C268 /* ContentView.swift */,
+				4D323FFC0568F8F4699A997F /* DesignPreview.swift */,
 				926BDAFA40CA845BE36C8E99 /* Domain.swift */,
 				9BCA0F8789C83ACA7F2E3B46 /* GoogleService-Info.plist */,
 				388339BC464F33C38B2069F7 /* Inference.swift */,
 				C2E42CA8F26A14CAA0947AE0 /* Info.plist */,
 				CDE0762894526504AC0D49A0 /* RespondentModel.swift */,
+				C4F4DB88AC96D2F1824FD54B /* Theme.swift */,
 				040498DE00EF2A25658FF454 /* UnsignedApp.swift */,
 			);
 			path = Sources;
@@ -156,9 +162,11 @@
 				8CA48328A7DFE216050525C5 /* Autorun.swift in Sources */,
 				142FB86D3E0DCF2FA17392CD /* CommonWords.swift in Sources */,
 				9593337BE089D12E02ADD3A9 /* ContentView.swift in Sources */,
+				281F7761A7031181BF10F7B5 /* DesignPreview.swift in Sources */,
 				9BCD15059A4A579BCB4B57CB /* Domain.swift in Sources */,
 				2770A886C00659311E07FEF4 /* Inference.swift in Sources */,
 				BC7E3B13EA6C2E9612BCA513 /* RespondentModel.swift in Sources */,
+				0C7D9223BE4AD9583A6E9C70 /* Theme.swift in Sources */,
 				61E5DE2F3D9381A65805870D /* UnsignedApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
