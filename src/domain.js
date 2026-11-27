@@ -61,9 +61,17 @@ const COMMON_ENGLISH_WORDS = new Set(`
   response responses result results review reviews right routine rule rules schedule shared
   short simple small status step steps suggestion suggestions support task tasks team teams
   thing things time today tomorrow update updates usual week weekend weeks weekly work yesterday
+  challenging checklist checklists clarity communicate communicated communicating coordination
+  effective effectively flow improve improved improvement improvements information necessary
+  obtain obtained process processes standard standardized standards
 `.trim().split(/\s+/));
 const SPECIFIC_RISK_CATEGORIES = new Set(['name', 'date', 'weekday', 'uncommon role']);
 const EN_MONTH = /(?<![\p{L}\p{N}])(?:January|February|March|April|May|June|July|August|September|October|November|December)(?![\p{L}\p{N}])/u;
+
+// The one ordinary-word test, shared by the source-side marks (riskSpans) and the draft-side AI marks (semanticNotes).
+export function hasSpecificWord(term) {
+  return (String(term).toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).some(word => !COMMON_ENGLISH_WORDS.has(word));
+}
 
 export function riskSpans(raw, candidate, ruleRisks = ruleBasedSourceRisks(raw)) {
   if (!Array.isArray(candidate)) throw new Error('Invalid risk output');
@@ -71,16 +79,15 @@ export function riskSpans(raw, candidate, ruleRisks = ruleBasedSourceRisks(raw))
   return candidate.slice(0, 30).flatMap(r => {
     if (typeof r?.text !== 'string' || !r.text || !raw.includes(r.text)) return [];
     const term = r.text;
-    const words = term.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
-    const hasSpecificWord = words.some(word => !COMMON_ENGLISH_WORDS.has(word));
+    const specificWord = hasSpecificWord(term);
     const specificCategory = SPECIFIC_RISK_CATEGORIES.has(r.category);
-    const nameCandidate = hasSpecificWord && /^\p{Lu}\p{L}*$/u.test(term) &&
+    const nameCandidate = specificWord && /^\p{Lu}\p{L}*$/u.test(term) &&
       literalSpans(raw, term).some(({ start }) => {
         const before = raw.slice(0, start).replace(/[\p{Ps}\p{Pi}"' \t]+$/u, '');
         return before.length > 0 && !/[.!?。！？\r\n]$/u.test(before);
       });
     if (!ruleTexts.has(term) && !/\p{N}/u.test(term) && !EN_MONTH.test(term) && !weekdayHits(term).length &&
-        !nameCandidate && !(specificCategory && hasSpecificWord)) return [];
+        !nameCandidate && !(specificCategory && specificWord)) return [];
     return [{ text: term, category: specificCategory ? r.category : 'other identifying detail' }];
   });
 }
@@ -155,13 +162,26 @@ export function semanticNotes(draft, candidate, originalRisks) {
     const phrase = typeof r.text === 'string' ? r.text.trim() : '';
     if (/^(?:(?:the|our|a|some|all)\s+)?(?:team|people|updates)$/i.test(phrase) && phrase.toLowerCase() !== originalRisks[r.sourceRiskIndex].text.toLowerCase()) return [];
     const words = phrase.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? [];
-    const short = words.length >= 1 && words.length <= 4 && !/[.!?\n\r]/u.test(phrase);
+    // Ordinary-word phrases (e.g. "standardized checklist") are never marked on the draft; only literal phrases with a specific word are.
+    const short = words.length >= 1 && words.length <= 4 && !/[.!?\n\r]/u.test(phrase) && hasSpecificWord(phrase);
     const spans = short ? literalSpans(draft, phrase).filter(({ start, end }) => {
       // Even a short sentence is not an advisory term highlight.
       const before = draft.slice(0, start).trimEnd(), after = draft.slice(end).trimStart();
       return !((!before || /[.!?]$/.test(before)) && (!after || /^[.!?]/.test(after)));
     }) : [];
-    return [{ sourceRiskIndex: r.sourceRiskIndex, category: originalRisks[r.sourceRiskIndex].category, text: spans.length ? phrase : '', spans }];
+    // The AI's own phrase rides along non-enumerably so the note's public shape is unchanged (see draftAdvisoryNotes).
+    return [Object.defineProperty({ sourceRiskIndex: r.sourceRiskIndex, category: originalRisks[r.sourceRiskIndex].category, text: spans.length ? phrase : '', spans }, 'phrase', { value: phrase })];
+  });
+}
+// An AI note names an original flag (“may still point to …”). Drop it only when it points at nothing:
+// the flag (or a fixed alias from the same deterministic table) is not in the draft, AND the note has no phrase
+// with a specific word (a note with no phrase, or one made only of ordinary words, carries no other evidence).
+export function draftAdvisoryNotes(draft, notes, originalRisks) {
+  return notes.filter(note => {
+    const risk = originalRisks[note.sourceRiskIndex];
+    if (!risk) return false;
+    if (residualRisks(draft, [risk]).length > 0) return true;
+    return !!note.phrase && hasSpecificWord(note.phrase);
   });
 }
 export function literalSpans(value, term) {

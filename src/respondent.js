@@ -1,5 +1,5 @@
 import { rawInput } from './inference.js';
-import { submission, respondentPath, residualRisks } from './domain.js';
+import { submission, respondentPath, residualRisks, draftAdvisoryNotes } from './domain.js';
 import { privateCall, privateFailure, PRIVATE_CALL_TIMEOUT_MS } from './private-check.js';
 import { TEMPLATES, TEMPLATES_JA } from './fixtures.js';
 export class Respondent {
@@ -77,7 +77,7 @@ export class Respondent {
     try {
       const result = await this.call('identifyRisks', rawInput(draft, { risks: this.risks, review: true }), { current });
       if (!current() || !result) return;
-      this.aiNotes = result.value; this.reviewResult = result; this.reviewPending = false; this.emit();
+      this.aiNotes = draftAdvisoryNotes(draft, result.value, this.risks); this.reviewResult = result; this.reviewPending = false; this.emit();
     } catch (error) {
       if (!current()) return;
       const detail = privateFailure('Semantic draft check', error);
