@@ -11,6 +11,10 @@
 <body>
   <a class="skip" href="#app-main" data-i18n="skipToApp">Skip to app</a>
   <aside class="prototype-intro" id="mode-banner" role="status" data-i18n="modeBannerLoading">Loading configuration…</aside>
+  <div class="prototype-intro" id="sandbox-controls" hidden>
+    <button class="primary-button" id="enter-sandbox" type="button" data-i18n="enterSandbox" hidden>Try it as a judge (fictional team, nothing saved)</button>
+    <button class="secondary-button" id="exit-sandbox" type="button" data-i18n="exitSandbox" hidden>Exit sandbox and return to the respondent view</button>
+  </div>
   <aside class="prototype-intro" id="ja-intro" hidden>
     <div class="intro-inner">
       <span class="prototype-label">UNSIGNED / PROTOTYPE</span>
@@ -103,9 +107,9 @@
             <p class="eyebrow" data-i18n="receiptEyebrow">Response complete</p>
             <h1 id="receipt-title" tabindex="-1" data-i18n="receiptTitle">Your approved words. Only those.</h1>
             <p data-i18n="receiptBody">Your approved response was accepted. Your original words were not included.</p>
-            <div class="card payload-card"><div class="payload-heading"><h2 data-i18n="whatWasSent">What was sent</h2><span data-i18n="approvedPayload">Approved payload</span></div><p id="receipt-source" class="execution-location"></p><pre id="sent-json" aria-label="Approved response JSON"></pre><div class="receipt-facts"><span data-i18n="receiptFactNoOriginal">No original text</span><span data-i18n="receiptFactNoHistory">No edit history</span><span data-i18n="receiptFactNoId">No person identifier</span></div></div>
+            <div class="card payload-card"><div class="payload-heading"><h2 id="what-was-sent" data-i18n="whatWasSent">What was sent</h2><span data-i18n="approvedPayload">Approved payload</span></div><p id="receipt-source" class="execution-location"></p><pre id="sent-json" aria-label="Approved response JSON"></pre><div class="receipt-facts"><span data-i18n="receiptFactNoOriginal">No original text</span><span data-i18n="receiptFactNoHistory">No edit history</span><span data-i18n="receiptFactNoId">No person identifier</span></div></div>
             <div class="receipt-actions"><button class="primary-button" id="receipt-admin" type="button" data-i18n="seeThemesAdmin">See themes in Admin<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="secondary-button" id="next-respondent" type="button" data-i18n="nextFictionalRespondent">Next fictional respondent</button></div>
-            <p class="receipt-note" data-i18n="receiptNote">Only the approved text and question ID are sent. A server timestamp is added when stored.</p>
+            <p class="receipt-note" id="receipt-note" data-i18n="receiptNote">Only the approved text and question ID are sent. A server timestamp is added when stored.</p>
           </section>
         </section>
 

@@ -107,7 +107,7 @@ test('Production chunks stay below 500 kB and entry/Demo/AI graphs exclude defer
   const modules = list => list.flatMap(c => Object.keys(c.modules)).join('\n');
   assert.doesNotMatch(modules(closure(entry)), /firebase|admin\.(?:js|html)|mcp\//);
   assert.ok(closure(entry).reduce((sum, c) => sum + Buffer.byteLength(c.code), 0) < 50_000);
-  for (const path of ['/src/demo-services.js', '/src/firebase.js']) {
+  for (const path of ['/src/demo-services.js', '/src/sandbox-services.js', '/src/firebase.js']) {
     const chunk = chunks.find(c => c.facadeModuleId?.endsWith(path)); assert.ok(chunk, path);
     assert.doesNotMatch(modules(closure(chunk)), /@firebase\/(?:firestore|auth)|live-services|admin\.html|mcp\//);
   }

@@ -1,4 +1,8 @@
 export const PLACEHOLDER = Object.freeze({ apiKey: 'demo', projectId: 'unsigned-demo-placeholder', appId: '1:000000000000:web:unsigned-demo', authDomain: 'unsigned-demo-placeholder.invalid' });
+export function sandboxMode(config, search) {
+  if (config.demo) return { available: false, active: false };
+  return { available: true, active: new URLSearchParams(search).get('sandbox') === '1' };
+}
 export function resolveConfig(value) {
   if (value === undefined || value === null) return { demo: true, firebase: PLACEHOLDER };
   const firebase = value.firebase;

@@ -6,7 +6,11 @@ export function deferred(factory) {
 }
 export function createServices(config, {
   loadAI = () => import('./firebase.js'),
-  loadStore = () => config.demo ? import('./demo-services.js') : import('./live-services.js')
+  loadStore = () => {
+    if (config.demo) return import('./demo-services.js');
+    if (config.sandbox) return import('./sandbox-services.js');
+    return import('./live-services.js');
+  }
 } = {}) {
   const ai = deferred(async () => (await loadAI()).createAI(config));
   const store = deferred(async () => (await loadStore()).createStore(config));

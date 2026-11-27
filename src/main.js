@@ -1,4 +1,4 @@
-import { loadConfig } from './config.js';
+import { loadConfig, sandboxMode } from './config.js';
 import { createServices, deferred } from './services.js';
 import { Respondent } from './respondent.js';
 import { questionId, literalSpans } from './domain.js';
@@ -11,7 +11,7 @@ const tell = message => { const text = i18n?.translateRespondentCopy?.(message) 
 const fixtures = () => i18n.getLocale() === 'ja' ? { examples: EXAMPLES_JA, templates: TEMPLATES_JA } : { examples: EXAMPLES, templates: TEMPLATES };
 const adminWorkspace = deferred(async () => {
   const { createAdmin } = await import('./admin.js');
-  return createAdmin({ config, services, checkin, setView, tell, refreshAdminI18n: () => i18n.applyStaticI18n($('admin-view')) });
+  return createAdmin({ config, services, getCheckin: () => checkin, openSandboxResponse, setView, tell, refreshAdminI18n: () => i18n.applyStaticI18n($('admin-view')) });
 });
 async function openAdmin(options = {}) {
   const request = ++viewRequest;
@@ -58,16 +58,17 @@ function refreshExampleOptions() {
 }
 function refreshToolbarAuth() {
   i18n.paintText($('admin-login'), config.demo ? 'openDemoAdmin' : 'signInGoogle');
-  if (!respondent) i18n.paintText($('auth-status'), config.demo ? 'authDemo' : 'authAnonymous');
+  if (!respondent || config.sandbox) i18n.paintText($('auth-status'), config.sandbox ? 'authSandbox' : config.demo ? 'authDemo' : 'authAnonymous');
 }
 function refreshChrome() {
   if (!config) return;
-  i18n.paintText($('mode-banner'), config.demo ? 'modeBannerDemo' : 'modeBannerLive');
+  i18n.paintText($('mode-banner'), config.sandbox ? 'modeBannerSandbox' : config.demo ? 'modeBannerDemo' : 'modeBannerLive');
   i18n.paintText($('footer-mode'), config.demo ? 'footerDemo' : 'footerLive');
   refreshToolbarAuth();
   i18n.applyStaticI18n();
   i18n.applyStaticI18n($('admin-view'));
   i18n.syncJaIntro();
+  if (config.sandbox) $('ja-intro').hidden = true;
   if ($('admin-view').innerHTML.trim()) $('admin-view').dispatchEvent(new Event('admin-i18n'));
 }
 function renderResponse() {
@@ -138,6 +139,46 @@ function renderResponse() {
   else if (preparing) tell(i18n.t('tellPreparing'));
   else if (['ready','structured','rewriting','checking'].includes(m.phase)) tell(phaseStatus(m.phase));
 }
+function showQuestion() {
+  if (checkin.id === 'check-in-001') i18n.paintText($('current-question'), 'demoCheckinQuestion');
+  else i18n.paintFree($('current-question'), checkin.question);
+}
+function newResponse() {
+  if (checkin.unavailable) return;
+  respondent?.invalidate();
+  const next = new Respondent({
+    infer: services.infer, send: services.submit, question_id: checkin.id,
+    responseId: services.responseId(), onChange: model => { if (model === respondent) renderResponse(); }
+  });
+  respondent = next;
+  $('sent-json').textContent = '';
+  showQuestion();
+  renderResponse();
+  if (!globalThis.LanguageModel) next.structured('unavailable');
+  else if (typeof globalThis.LanguageModel.availability === 'function') {
+    void (async () => {
+      try {
+        if (await globalThis.LanguageModel.availability() === 'unavailable' && next === respondent && next.phase === 'empty') next.structured('unavailable');
+      } catch {
+        if (next === respondent && next.phase === 'empty') next.structured('failed');
+      }
+    })();
+  }
+}
+async function openSandboxResponse(id) {
+  checkin = await services.checkin(id);
+  newResponse();
+  viewRequest++;
+  setView('respondent');
+  $('app-main').focus();
+}
+function navigateSandbox(active) {
+  const url = new URL(location.href);
+  if (active) url.searchParams.set('sandbox', '1');
+  else url.searchParams.delete('sandbox');
+  url.hash = active ? '' : 'respondent-view';
+  location.replace(url.href);
+}
 async function start() {
   i18n = await import('./i18n.js');
   await i18n.initI18n();
@@ -145,34 +186,39 @@ async function start() {
   i18n.onLocaleChange(() => {
     refreshChrome();
     refreshExampleOptions();
-    if (checkin && !checkin.unavailable) {
-      if (checkin.id === 'check-in-001') i18n.paintText($('current-question'), 'demoCheckinQuestion');
-      else i18n.paintFree($('current-question'), checkin.question);
-    }
+    if (checkin && !checkin.unavailable) showQuestion();
     renderResponse();
   });
   try {
-    config = await loadConfig(); services = createServices(config);
+    const loadedConfig = await loadConfig();
+    const sandbox = sandboxMode(loadedConfig, location.search);
+    config = { ...loadedConfig, sandbox: sandbox.active };
+    services = createServices(config);
     refreshChrome();
-    $('next-respondent').hidden = !config.demo; $('examples').hidden = !config.demo;
+    $('sandbox-controls').hidden = !sandbox.available;
+    $('enter-sandbox').hidden = !sandbox.available || sandbox.active;
+    $('exit-sandbox').hidden = !sandbox.active;
+    $('enter-sandbox').addEventListener('click', () => navigateSandbox(true));
+    $('exit-sandbox').addEventListener('click', () => navigateSandbox(false));
+    $('admin-login').hidden = sandbox.active;
+    $('tab-settings').hidden = sandbox.active;
+    $('next-respondent').hidden = !config.demo;
+    $('examples').hidden = !config.demo && !sandbox.active;
+    if (sandbox.active) {
+      i18n.paintText($('what-was-sent'), 'sandboxReceiptHeading');
+      i18n.paintText($('receipt-note'), 'sandboxReceiptNote');
+    }
     refreshExampleOptions();
-    const id = questionId(new URLSearchParams(location.search).get('checkin') || 'check-in-001');
-    await services.respondent();
+    const id = questionId((!sandbox.active && new URLSearchParams(location.search).get('checkin')) || 'check-in-001');
+    if (!sandbox.active) await services.respondent();
     try { checkin = await services.checkin(id); }
     catch { checkin = { id, unavailable: true }; i18n.paintText($('current-question'), 'questionUnavailable'); $('response-form').hidden = true; tell(i18n.t('tellCheckinUnavailable')); }
-    function newResponse() {
-      if (checkin.unavailable) return;
-      respondent?.invalidate();
-      respondent = new Respondent({ infer: services.infer, send: services.submit, question_id: checkin.id, responseId: services.responseId(), onChange: renderResponse });
-      if (checkin.id === 'check-in-001') i18n.paintText($('current-question'), 'demoCheckinQuestion');
-      else i18n.paintFree($('current-question'), checkin.question);
-      renderResponse();
-    }
     newResponse();
     refreshToolbarAuth();
-    if (!config.demo) {
+    if (sandbox.active) await openAdmin();
+    else if (!config.demo) {
       try {
-        if (await services.restoreAdmin()) await openAdmin({ restored: true });
+        if (await services.restoreAdmin()) await openAdmin({ restored: true, respondentView: location.hash === '#respondent-view' });
       } catch { tell(i18n.t('tellAdminSignInFail')); }
     }
     $$('[data-view]').forEach(el => el.addEventListener('click', () => { if (el.dataset.view === 'admin') void openAdmin(); else { viewRequest++; setView('respondent'); } }));
@@ -185,7 +231,14 @@ async function start() {
     $('approve').addEventListener('change', e => respondent?.approve(e.target.checked));
     $('keep-risks').addEventListener('change', e => respondent?.acceptRisks(e.target.checked));
     $('confirm-advisory').addEventListener('change', e => respondent?.acceptAdvisory(e.target.checked));
-    $('send-response').addEventListener('click', async () => { const payload = await respondent?.submit(); if(payload) { $('receipt-title').focus(); tell(config.demo ? i18n.t('tellDemoSaved') : i18n.t('tellApprovedAccepted')); } });
+    $('send-response').addEventListener('click', async () => {
+      const active = respondent;
+      const payload = await active?.submit();
+      if (payload && active === respondent) {
+        $('receipt-title').focus();
+        tell(i18n.t(config.sandbox ? 'tellSandboxSaved' : config.demo ? 'tellDemoSaved' : 'tellApprovedAccepted'));
+      }
+    });
     $('structured-mode').addEventListener('click', () => respondent?.structured());
     $$('input[name="fallback-topic"]').forEach(el => el.addEventListener('change', () => { if(respondent?.phase==='preparing') respondent.structured('preparing'); respondent?.setTemplate(el.value); }));
     $('fallback-template').addEventListener('change', e => respondent?.setTemplate(respondent.topic,e.target.value));
@@ -195,10 +248,6 @@ async function start() {
     i18n.paintText($('mode-banner'), 'modeBannerStartFail');
     tell(i18n.t('tellConfigFail'));
     $('response-form').hidden = true; $('admin-login').disabled = true; $('structured-mode').disabled = true;
-  }
-  if (respondent && !globalThis.LanguageModel) respondent.structured('unavailable');
-  else if (respondent && typeof globalThis.LanguageModel?.availability === 'function') {
-    try { if(await globalThis.LanguageModel.availability()==='unavailable') respondent.structured('unavailable'); } catch { respondent.structured('failed'); }
   }
 }
 void start();
