@@ -109,7 +109,7 @@ export const JA_MESSAGES = {
     tellConfigFail: '設定または初期化に失敗しました。ローカル設定を確認してください。回答は送信されていません。',
     tellCheckinUnavailable: '公開中のチェックインがありません。運営者がサインインして下書きを作成できます。',
     questionUnavailable: 'このチェックインは利用できません。運営者に公開中のリンクを確認してください。',
-    tellPreparing: '端末のモデルを準備中です。付属の Chrome 158 の試験では初回呼び出しに約 11 秒かかりました。今すぐ選択式の回答を選べます。',
+    tellPreparing: '端末のモデルを準備中です。初回は 1 分ほどかかることがあります。今すぐ選択式の回答を選べます。',
     tellDemoSaved: 'デモのメモリにのみ保存しました。クラウドには書き込まれていません。',
     tellApprovedAccepted: '承認した回答を受理しました。',
     statusEmpty: '入力を待っています',

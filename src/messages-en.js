@@ -109,7 +109,7 @@ export const EN_MESSAGES = {
     tellConfigFail: 'Configuration or initialization failed. Check your local configuration. No response was sent.',
     tellCheckinUnavailable: 'No open check-in found. Administrators can sign in to create a draft.',
     questionUnavailable: 'This check-in is unavailable. Ask your administrator for an open check-in link.',
-    tellPreparing: 'Preparing on-device model. The supplied Chrome 158 spike took about 11 seconds on its first call. You can choose a structured answer now.',
+    tellPreparing: 'Preparing the on-device model. The first call can take up to a minute. You can choose a structured answer now.',
     tellDemoSaved: 'Saved in demo memory only. No cloud write occurred.',
     tellApprovedAccepted: 'Approved response accepted.',
     statusEmpty: 'Waiting for your words',
