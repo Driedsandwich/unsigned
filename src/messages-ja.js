@@ -164,6 +164,8 @@ export const JA_MESSAGES = {
     adminRawNever: '生の回答は保存されません',
     adminCloudApproved: 'クラウド AI が受け取るのは承認した書き直しのみです。',
     adminGroup: '承認した回答をグループ化',
+    detailsLabel: '詳細',
+    adminSignalsEmpty: '「承認した回答をグループ化」を押すと、3 人以上が支える主題だけがここに出ます。',
     adminSharedSignals: '共有されたシグナル',
     adminVisibleThemes: '表示中のテーマ',
     adminNoThemes: '表示するテーマがありません',

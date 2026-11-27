@@ -3,7 +3,7 @@
       --bg:#F4F6F4; --surface:#FFFFFF; --ink:#172C2A; --muted:#526560;
       --green:#236C60; --pale:#E4F1EB; --line:#CBD8D2; --soft:#EDF2EE;
       font-family:Inter,ui-sans-serif,system-ui,sans-serif; color:var(--ink);
-      background:#E8EDE9; font-synthesis:none; font-variant-numeric:tabular-nums;
+      background:var(--bg); font-synthesis:none; font-variant-numeric:tabular-nums;
     }
     * { box-sizing:border-box }
     body { margin:0 }
@@ -37,8 +37,8 @@
     .local-label { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); margin-left:auto }
     .local-label::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--green) }
     .toolbar-footnote { max-width:1376px; margin:8px auto 0; color:var(--muted); font-size:11px }
-    .preview-stage { padding:28px 24px 40px }
-    .app-shell { width:100%; max-width:1440px; margin:0 auto; background:var(--bg); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:0 12px 40px #172C2A08; container:workspace / inline-size }
+    .preview-stage { padding:0 }
+    .app-shell { width:100%; max-width:1440px; margin:0 auto; background:var(--bg); container:workspace / inline-size }
     .app-shell[data-size="mobile"] { max-width:390px }
     .app { --body-size:18px; --body-line:26px; --label-size:14px; --label-line:20px; --pad:32px; font-size:var(--body-size); line-height:var(--body-line) }
     .app h1 { font-size:32px; line-height:40px }
@@ -268,7 +268,7 @@
       .step-text strong,.step-text span { display:inline; font-size:13px; line-height:20px; font-weight:400 }
       .step-text span::before { content:"· "; color:var(--muted) }
       .device-boundary,.cloud-receives,.timeline-footnote { display:none }
-      .approval-bar { margin:0 16px 20px; border:1px solid var(--line); border-radius:12px; padding:12px; grid-template-columns:1fr; gap:8px }
+      .approval-bar { margin:0; padding:12px 16px; grid-template-columns:1fr; gap:8px }
       .approve-label { font-size:16px; line-height:22px; gap:10px }
       .approve-label input { width:24px; height:24px }
       .primary-button,.secondary-button { font-size:16px; line-height:22px; padding:10px 16px; min-height:44px }
@@ -326,6 +326,8 @@
       .saved-question blockquote { font-size:20px; line-height:28px }
     }
     @media (max-width: 760px) {
+      .top-row { padding:8px 16px }
+      .top-note { flex-basis:100% }
       .prototype-intro { padding:14px 16px }
       .intro-inner { flex-direction:column; gap:8px }
       .prototype-label { font-size:10px; margin:0; padding:3px 7px }
@@ -338,9 +340,65 @@
       .segmented button { min-height:44px; padding:0 11px; font-size:12px }
       .local-label { margin-left:0; font-size:11px }
       .toolbar-footnote { font-size:10px; line-height:16px }
-      .preview-stage { padding:16px 0 24px }
-      .app-shell { border-radius:0; border-left:0; border-right:0; box-shadow:none }
     }
     @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation:none !important; scroll-behavior:auto !important } }
   
 .risk-review {margin-top:16px;font-size:14px;line-height:22px} #draft-ai-notes.ai-advisory-notes:not([hidden]) {margin-top:8px;padding:10px 12px;border-radius:8px;border:1.5px solid #C9892B;background:#FFF6E8;color:#5C3D0D;font-weight:600} .approve-label.advisory-confirm:not([hidden]) {margin-top:8px;font-size:16px;line-height:22px;font-weight:600} mark {background:#FBE7B7;color:#172C2A;border-radius:3px;padding:1px 3px} .app-message {padding:12px 32px;color:var(--muted)} .admin-request {margin-bottom:16px} .admin-request textarea {min-height:64px} .map-canvas {list-style:none;margin:0} .theme-island {overflow-wrap:anywhere} .app-header {flex-wrap:wrap} .auth-bar {display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+/* A1 one slim top bar */
+html { scroll-padding-bottom:160px }
+.top-bar { background:#F9FBF8; border-bottom:1px solid var(--line) }
+.top-row { max-width:1440px; margin:0 auto; min-height:56px; padding:6px 32px; display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px }
+.top-note { flex:1 1 260px; min-width:0; font-size:12px; line-height:16px; color:var(--ink); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden }
+.top-sandbox { display:flex; gap:8px; flex-wrap:wrap }
+.top-sandbox button { min-height:44px; padding:0 14px; font-size:14px; line-height:20px; white-space:nowrap }
+.top-controls { margin:0 }
+.top-controls .toolbar-inner { max-width:none; gap:6px 16px; flex-wrap:wrap }
+.top-bar:has(#ja-intro[hidden]) #intro-toggle { display:none }
+.top-bar:not(.intro-open) #ja-intro { display:none }
+.top-bar .prototype-intro { border-top:1px solid var(--line); border-bottom:0; padding:12px 32px }
+.top-bar .prototype-intro .japanese { font-size:13px }
+[tabindex="-1"]:focus:not(:focus-visible),#receipt-title:focus,#app-main:focus { outline:none }
+.app-message { padding:8px 32px; min-height:0 }
+.app-message:empty { display:none }
+/* A2 sticky approval bar */
+.approval-bar { position:sticky; bottom:0; z-index:4; box-shadow:0 -8px 16px #172C2A0F }
+/* A3 empty landscape */
+.signals-empty { display:none; margin:0 0 8px; font-size:var(--label-size); line-height:var(--label-line); color:var(--ink) }
+.map-canvas[data-count="0"] { display:none }
+.map-canvas[data-count="0"] ~ .signals-empty { display:block }
+.landscape:has(.map-canvas[data-count="0"]) { padding:16px 20px; background:var(--pale); border-color:#D1E3DA }
+.landscape:has(.map-canvas[data-count="0"]) .map-topline { margin-bottom:8px }
+.landscape:has(.map-canvas[data-count="0"]) .map-caption { margin-top:8px }
+/* A6 review sections */
+.risk-review { margin-top:24px; padding-top:16px; border-top:1px solid #C6DBD1 }
+.risk-review > strong { display:block; font-size:var(--body-size); line-height:var(--body-line); margin-bottom:8px }
+.risk-review > p { margin-top:8px }
+.risk-review > p:first-of-type { margin-top:0; color:var(--muted); font-size:13px }
+.draft-note { margin-top:16px }
+/* A9 labels over inputs */
+.admin-request label { display:block; margin-bottom:8px; font-weight:600 }
+.question-output label { margin-bottom:8px }
+/* A12 theme island text */
+.island-meta { font-size:13px }
+.top-bar:has(#sandbox-controls:not([hidden])) #auth-status { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap }
+.top-controls .toolbar-inner { gap:6px 12px }
+/* narrow: slim sandbox bar (note behind Details, small buttons wrapped in 1-2 rows) */
+@media (max-width: 599px) {
+  .top-row { padding:4px 16px; min-height:0; gap:2px 8px }
+  .top-controls,.top-controls .toolbar-inner { display:contents }
+  .top-note { display:none; order:7; flex-basis:100% }
+  .top-bar.intro-open .top-note { display:block }
+  #intro-toggle { order:1; min-height:36px; padding:0 4px; font-size:13px }
+  .control-group { order:2; gap:0 }
+  .control-group .control-label { position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap }
+  .toolbar-inner > .segmented { order:3 }
+  .top-sandbox { order:4 }
+  .auth-bar { order:5 }
+  #structured-mode { order:6; min-height:28px; padding:0 4px; font-size:12px }
+  .top-row .segmented { padding:2px }
+  .top-row .segmented button { min-height:32px; padding:0 8px; font-size:12px }
+  .top-sandbox button { min-height:32px; padding:0 10px; font-size:12px }
+  .top-bar .prototype-intro { padding:10px 16px }
+  .app-message { padding:6px 16px }
+}

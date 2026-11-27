@@ -164,6 +164,8 @@ export const EN_MESSAGES = {
     adminRawNever: 'Raw responses are never stored',
     adminCloudApproved: 'Cloud AI receives approved rewrites only.',
     adminGroup: 'Group approved responses',
+    detailsLabel: 'Details',
+    adminSignalsEmpty: 'Press “Group approved responses” and only themes supported by 3 or more people will appear here.',
     adminSharedSignals: 'Shared signals',
     adminVisibleThemes: 'Visible themes',
     adminNoThemes: 'No themes to display',

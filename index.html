@@ -10,25 +10,30 @@
 </head>
 <body>
   <a class="skip" href="#app-main" data-i18n="skipToApp">Skip to app</a>
-  <aside class="prototype-intro" id="mode-banner" role="status" data-i18n="modeBannerLoading">Loading configuration…</aside>
-  <div class="prototype-intro" id="sandbox-controls" hidden>
-    <button class="primary-button" id="enter-sandbox" type="button" data-i18n="enterSandbox" hidden>Try it as a judge (fictional team, nothing saved)</button>
-    <button class="secondary-button" id="exit-sandbox" type="button" data-i18n="exitSandbox" hidden>Exit sandbox and return to the respondent view</button>
-  </div>
+  <header class="top-bar" id="top-bar">
+    <div class="top-row">
+      <aside class="top-note" id="mode-banner" role="status" data-i18n="modeBannerLoading">Loading configuration…</aside>
+      <button class="text-button" id="intro-toggle" type="button" aria-expanded="false" aria-controls="ja-intro" data-i18n="detailsLabel">Details</button>
+      <div class="top-sandbox" id="sandbox-controls" hidden>
+        <button class="primary-button" id="enter-sandbox" type="button" data-i18n="enterSandbox" hidden>Try it as a judge (fictional team, nothing saved)</button>
+        <button class="secondary-button" id="exit-sandbox" type="button" data-i18n="exitSandbox" hidden>Exit sandbox and return to the respondent view</button>
+      </div>
+      <section class="top-controls" data-i18n-aria="workspace">
+        <div class="toolbar-inner">
+      <div class="control-group"><span class="control-label" id="lang-label" data-i18n="langLabel">Language</span><div class="segmented" role="group" aria-labelledby="lang-label"><button type="button" data-locale="en" aria-pressed="true" data-i18n="langEn">EN</button><button type="button" data-locale="ja" aria-pressed="false" data-i18n="langJa">日本語</button></div></div>
+      <div class="segmented" role="group"><button type="button" data-view="respondent" aria-pressed="true" data-i18n="viewRespondent">Respondent</button><button type="button" data-view="admin" aria-pressed="false" data-i18n="viewAdmin">Admin</button></div>
+      <div class="auth-bar"><button id="admin-login" class="text-button" data-i18n="signInGoogle">Sign in with Google</button><button id="sign-out" class="text-button" hidden data-i18n="signOut">Sign out</button><span id="auth-status" class="control-label"></span></div>
+      <button id="structured-mode" class="text-button" data-i18n="useStructuredAnswer">Use a structured answer</button>
+        </div>
+      </section>
+    </div>
   <aside class="prototype-intro" id="ja-intro" hidden>
     <div class="intro-inner">
       <span class="prototype-label">UNSIGNED / PROTOTYPE</span>
       <p class="japanese" data-i18n="jaIntroHtml" data-i18n-html="true"></p>
     </div>
   </aside>
-  <section class="prototype-toolbar" data-i18n-aria="workspace">
-    <div class="toolbar-inner">
-      <div class="control-group"><span class="control-label" id="lang-label" data-i18n="langLabel">Language</span><div class="segmented" role="group" aria-labelledby="lang-label"><button type="button" data-locale="en" aria-pressed="true" data-i18n="langEn">EN</button><button type="button" data-locale="ja" aria-pressed="false" data-i18n="langJa">日本語</button></div></div>
-      <div class="segmented" role="group"><button type="button" data-view="respondent" aria-pressed="true" data-i18n="viewRespondent">Respondent</button><button type="button" data-view="admin" aria-pressed="false" data-i18n="viewAdmin">Admin</button></div>
-      <div class="auth-bar"><button id="admin-login" class="text-button" data-i18n="signInGoogle">Sign in with Google</button><button id="sign-out" class="text-button" hidden data-i18n="signOut">Sign out</button><span id="auth-status" class="control-label"></span></div>
-      <button id="structured-mode" class="text-button" data-i18n="useStructuredAnswer">Use a structured answer</button>
-    </div>
-  </section>
+  </header>
   <p id="app-message" class="app-message" role="status" aria-live="polite"></p>
   <div class="preview-stage">
     <div class="app-shell" id="app-shell" data-size="desktop">

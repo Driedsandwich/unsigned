@@ -197,6 +197,9 @@ async function start() {
     $('sandbox-controls').hidden = !sandbox.available;
     $('enter-sandbox').hidden = !sandbox.available || sandbox.active;
     $('exit-sandbox').hidden = !sandbox.active;
+    const setIntroOpen = open => { $('top-bar').classList.toggle('intro-open', open); $('intro-toggle').setAttribute('aria-expanded', String(open)); };
+    setIntroOpen(!sandbox.active);
+    $('intro-toggle').addEventListener('click', () => setIntroOpen(!$('top-bar').classList.contains('intro-open')));
     $('enter-sandbox').addEventListener('click', () => navigateSandbox(true));
     $('exit-sandbox').addEventListener('click', () => navigateSandbox(false));
     $('admin-login').hidden = sandbox.active;
