@@ -3,6 +3,7 @@ import { adminInput, approvedInput } from './inference.js';
 import { publicThemes } from './domain.js';
 import { applyStaticI18n, t, sourceLabelI18n, paintText, paintFree, paintSource, getLocale } from './i18n.js';
 import { localizeStoredTheme } from './fixtures.js';
+import { SANDBOX_LIMIT_CODE } from './services.js';
 const $ = id => document.getElementById(id);
 const $$ = selector => [...document.querySelectorAll(selector)];
 
@@ -79,7 +80,7 @@ export function createAdmin({ config, services, getCheckin, openSandboxResponse,
       const saved = await services.saveThemes(checkin.id, result.value);
       if (!current()) return;
       themes = saved; renderThemes(); paintSource($('aggregate-source'), result); tell(t('tellThemesUpdated'));
-    } catch { if (current()) tell(t('tellGroupFail')); }
+    } catch (error) { if (current()) tell(t(error?.code === SANDBOX_LIMIT_CODE ? 'tellSandboxCloudLimit' : 'tellGroupFail')); }
     finally { aggregateBusy = false; updateAuth(); }
   }
   async function draftQuestion() {

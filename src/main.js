@@ -67,8 +67,7 @@ function refreshChrome() {
   refreshToolbarAuth();
   i18n.applyStaticI18n();
   i18n.applyStaticI18n($('admin-view'));
-  i18n.syncJaIntro();
-  if (config.sandbox) $('ja-intro').hidden = true;
+  i18n.syncJaIntro(config);
   if ($('admin-view').innerHTML.trim()) $('admin-view').dispatchEvent(new Event('admin-i18n'));
 }
 function renderResponse() {

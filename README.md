@@ -74,7 +74,7 @@ A missing configuration file is different from a broken configuration. Malformed
 4. Click **Insert example** to try the private rewrite and risk checks. Check **Ran on device**, review the draft, tick **I approve this version**, then click **Send approved response**.
 5. Click **See themes in Admin → Group approved responses**. Check **Ran in cloud** and the theme bands. The tab holds the fictional records and results until you reload or select **Exit sandbox and return to the respondent view**.
 
-Only configured installations show the sandbox entry. Question drafting uses the device-preferred Firebase AI Logic route, which can fall back to the cloud. Private rewriting and both risk checks require the on-device model. Grouping uses the configured cloud model with App Check and sends only the matched approved rewrites for the current question. Check-ins, individual approved submissions, participant markers, and saved themes stay in tab memory. The sandbox makes no Firebase Authentication or Firestore calls.
+The sandbox allows cloud grouping up to 3 times per tab (counted in memory, so a reload resets it); the fourth attempt shows a limit message and never calls the cloud. Only configured installations show the sandbox entry. Question drafting uses the device-preferred Firebase AI Logic route, which can fall back to the cloud. Private rewriting and both risk checks require the on-device model. Grouping uses the configured cloud model with App Check and sends only the matched approved rewrites for the current question. Check-ins, individual approved submissions, participant markers, and saved themes stay in tab memory. The sandbox makes no Firebase Authentication or Firestore calls.
 
 ## Configure Firebase locally
 

@@ -134,15 +134,25 @@ export function syncLangToggle() {
   }
 }
 
-export function syncJaIntro() {
+// The intro text must match what "send" really does in each form. The prototype text
+// (nothing leaves the screen) is true only in Demo mode and is shown in Japanese only.
+export function introFor(config, loc = locale) {
+  if (!config) return { key: 'jaIntroHtml', hidden: true };
+  if (config.sandbox) return { key: 'introSandboxHtml', hidden: false };
+  if (config.demo) return { key: 'jaIntroHtml', hidden: loc !== 'ja' };
+  return { key: 'introLiveHtml', hidden: false };
+}
+
+let introConfig = null;
+export function syncJaIntro(config = introConfig) {
   if (typeof document === 'undefined') return;
+  introConfig = config;
   const intro = document.getElementById('ja-intro');
   if (!intro) return;
-  intro.hidden = locale !== 'ja';
-  if (locale === 'ja') {
-    const body = intro.querySelector('[data-i18n="jaIntroHtml"]');
-    if (body) body.innerHTML = t('jaIntroHtml');
-  }
+  const { key, hidden } = introFor(config);
+  intro.hidden = hidden;
+  const body = intro.querySelector('p');
+  if (body && !hidden) { body.dataset.i18n = key; body.innerHTML = t(key); }
 }
 
 export function bindLangToggle(onChange = () => {}) {
